@@ -1,0 +1,541 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Inscrire mon entreprise — Konekte</title>
+<link rel="icon" href="/favicon.ico" sizes="any">
+<link rel="icon" type="image/png" sizes="192x192" href="/icone-192.png">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<meta name="theme-color" content="#0B2C6B">
+<link rel="stylesheet" href="/style.css">
+<style>
+body { background: var(--fond); min-height: 100vh; padding: 24px 16px 48px; }
+.boite { width: 100%; max-width: 720px; margin: 0 auto; }
+.deux { display: grid; grid-template-columns: 1fr 1fr; gap: 0 14px; }
+@media (max-width: 560px) { .deux { grid-template-columns: 1fr; } }
+
+.fil { display: flex; gap: 6px; margin-bottom: 20px; }
+.fil-pas { flex: 1; text-align: center; font-size: 11px; font-weight: 700; color: var(--gris); }
+.fil-barre { height: 5px; border-radius: 99px; background: var(--bordure); margin-bottom: 6px; }
+.fil-pas.faite .fil-barre { background: var(--vert); }
+.fil-pas.active .fil-barre { background: var(--degrade); }
+.fil-pas.active { color: var(--marine); }
+@media (max-width: 560px) { .fil-pas span { display: none; } }
+
+.etape { display: none; }
+.etape.on { display: block; }
+.nav-etapes { display: flex; gap: 10px; margin-top: 22px; }
+.nav-etapes .btn { flex: 1; }
+
+.lecture { max-height: 260px; overflow-y: auto; border: 1.5px solid var(--bordure);
+  border-radius: var(--r-champ); padding: 16px 18px; background: #fff; font-size: 13.5px; line-height: 1.6; }
+.lecture h4 { font-size: 13.5px; margin: 14px 0 4px; color: var(--marine); }
+.lecture h4:first-child { margin-top: 0; }
+.lecture p, .lecture li { color: var(--texte); }
+.lecture ul { margin: 4px 0 0 18px; }
+.case-legale { display: flex; gap: 11px; align-items: flex-start; padding: 13px 15px; margin-top: 12px;
+  border: 1.5px solid var(--bordure); border-radius: var(--r-champ); background: #fff; cursor: pointer; font-size: 13.5px; }
+.case-legale.on { border-color: var(--bleu); background: var(--bleu-clair);
+  box-shadow: 0 0 0 3px rgba(37,99,235,.10); }
+.case-legale input[type="checkbox"] {
+  appearance: none; -webkit-appearance: none; width: 20px; height: 20px; margin: 1px 0 0;
+  flex: none; border: 2px solid #C3CFE2; border-radius: 6px; background: #fff; cursor: pointer;
+  position: relative; transition: border-color .15s, background .15s; }
+.case-legale input[type="checkbox"]:checked { border-color: var(--bleu); background: var(--bleu); }
+.case-legale input[type="checkbox"]:checked::after { content: '✓'; position: absolute; inset: 0;
+  display: grid; place-items: center; color: #fff; font-size: 12.5px; font-weight: 800; }
+.case-legale input:disabled { background: #EEF2F7; border-color: #DDE5F0; cursor: not-allowed; }
+
+.grille-forfaits { display: grid; gap: 12px; }
+.forfait { position: relative; border: 2px solid var(--bordure); border-radius: var(--r-carte);
+  padding: 18px 20px; background: #fff; cursor: pointer; display: block; }
+.forfait:hover { border-color: var(--bleu); }
+.forfait.on { border-color: var(--bleu); background: var(--bleu-clair); box-shadow: var(--ombre); }
+.forfait input { position: absolute; opacity: 0; }
+.forfait-tete { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+.forfait-nom { font-size: 17px; font-weight: 800; color: var(--marine); }
+.forfait-prix { font-size: 20px; font-weight: 800; color: var(--marine); white-space: nowrap; }
+.forfait-prix small { font-size: 12px; font-weight: 600; color: var(--gris); }
+.forfait ul { list-style: none; margin: 12px 0 0; padding: 0; display: grid; gap: 5px; }
+.forfait li { font-size: 13px; color: var(--texte); padding-left: 20px; position: relative; }
+.forfait li::before { content: '✓'; position: absolute; left: 0; color: var(--vert); font-weight: 800; }
+.ruban { position: absolute; top: -10px; right: 16px; background: var(--orange); color: #fff;
+  border-radius: 99px; padding: 3px 12px; font-size: 11px; font-weight: 800; }
+
+.encart-essai { background: var(--vert-fond); border-radius: var(--r-champ); padding: 15px 17px; margin-bottom: 18px; }
+.encart-essai strong { color: #07684A; }
+.recap-ab { background: var(--gris-clair); border-radius: var(--r-champ); padding: 15px 17px; }
+.recap-ab div { display: flex; justify-content: space-between; padding: 4px 0; font-size: 14px; gap: 12px; }
+.recap-ab .fort { border-top: 1px solid var(--bordure); margin-top: 6px; padding-top: 9px; font-weight: 800; color: var(--marine); }
+.champ-signature { font-family: 'Segoe Script', 'Brush Script MT', cursive; font-size: 21px; }
+/* Aperçu des images déposées à l'inscription : cadre de hauteur fixe, pour que
+   la mise en page ne saute pas quand l'image apparaît. */
+.apercu-img { height: 92px; border: 1.5px dashed var(--bordure); border-radius: 12px;
+  display: grid; place-items: center; overflow: hidden; background: #FBFCFE; }
+.apercu-img img { width: 100%; height: 100%; object-fit: cover; display: block; }
+</style>
+</head>
+<body>
+<div class="boite">
+  <div class="centre mb"><a class="logo" style="justify-content:center" href="/"><img src="/logo.png" alt="Konekte" style="height:92px;width:auto"></a></div>
+
+  <div class="fil" id="fil"></div>
+
+  <div class="carte"><div class="carte-corps" style="padding:26px">
+
+    <section class="etape on" data-pas="1">
+      <h1 style="font-size:20px">Votre entreprise</h1>
+      <p class="muet petit" style="margin-top:4px">Ces informations composeront votre page publique.</p>
+      <label>Nom de l'entreprise *</label><input id="nomEnt" placeholder="Ex : Salon Elegance">
+      <div class="deux">
+        <div><label>Type d'activité *</label>
+          <select id="metier"><option value="">Chargement…</option></select>
+          <p class="aide" id="aideMetier">Votre espace s'adaptera à votre activité.</p>
+        </div>
+        <div><label>Téléphone</label><input id="tel" placeholder="+509 …"></div>
+      </div>
+      <div class="deux">
+        <div><label>Département *</label>
+          <select id="departement"><option value="">Choisissez…</option></select>
+        </div>
+        <div><label>Ville ou commune *</label>
+          <input id="ville" list="listeCommunes" autocomplete="off" placeholder="Ex : Saint-Marc">
+          <datalist id="listeCommunes"></datalist>
+        </div>
+      </div>
+      <p class="aide" id="aideVille">Votre ville situe votre entreprise dans les recherches « près de moi »,
+      et donne accès aux services offerts dans votre commune.</p>
+      <label>Adresse</label><input id="adresse" placeholder="Ex : Delmas 33, Port-au-Prince">
+
+      <label style="margin-top:16px">Votre logo et votre photo d'en-tête</label>
+      <p class="aide" style="margin-top:2px">Facultatif, et modifiable à tout moment depuis votre espace.
+      Les images sont réduites automatiquement avant l'envoi.</p>
+      <div class="deux" style="margin-top:8px">
+        <div>
+          <span class="petit" style="font-weight:700;color:var(--marine)">Logo</span>
+          <div class="apercu-img" id="apLogo" style="margin-top:4px"><span class="petit muet">Aucun logo</span></div>
+          <input type="file" id="insLogo" accept="image/*" style="margin-top:8px">
+          <button class="btn btn-fantome btn-petit" type="button" id="btnRetirerLogo"
+                  onclick="retirerImageInscription('logo')" style="margin-top:6px;display:none">Retirer</button>
+        </div>
+        <div>
+          <span class="petit" style="font-weight:700;color:var(--marine)">Photo d'en-tête</span>
+          <div class="apercu-img" id="apFond" style="margin-top:4px"><span class="petit muet">Aucune photo</span></div>
+          <input type="file" id="insFond" accept="image/*" style="margin-top:8px">
+          <button class="btn btn-fantome btn-petit" type="button" id="btnRetirerFond"
+                  onclick="retirerImageInscription('fond')" style="margin-top:6px;display:none">Retirer</button>
+        </div>
+      </div>
+
+      <hr style="border:none;border-top:1px solid var(--bordure);margin:18px 0 4px">
+      <label>Votre nom (responsable) *</label><input id="nomResp" placeholder="Ex : Marie Dorval">
+      <div class="deux">
+        <div><label>Email *</label><input id="email" type="email" placeholder="vous@entreprise.ht"></div>
+        <div><label>Mot de passe *</label><input id="mdp" type="password" minlength="6" placeholder="6 caractères min." oninput="verifierMdp()"></div>
+      </div>
+      <label>Confirmer le mot de passe *</label>
+      <input id="mdp2" type="password" placeholder="Saisissez à nouveau le mot de passe" oninput="verifierMdp()">
+      <p class="aide" id="etatMdp"></p>
+    </section>
+
+    <section class="etape" data-pas="2">
+      <h1 style="font-size:20px">Politique et règlement</h1>
+      <p class="muet petit" style="margin-top:4px">Faites défiler jusqu'en bas pour pouvoir accepter.</p>
+      <div class="lecture mt" id="texteLegal" onscroll="verifierLecture(this)">
+        <h4>1. Objet</h4>
+        <p>Konekte met à disposition des entreprises haïtiennes une plateforme de prise de rendez-vous, de réservation et de vente en ligne. L'entreprise inscrite conserve la pleine responsabilité des services et produits qu'elle propose.</p>
+        <h4>2. Engagements de l'entreprise</h4>
+        <ul>
+          <li>Fournir des informations exactes sur son activité, ses prix et sa disponibilité.</li>
+          <li>Honorer les rendez-vous, réservations et commandes acceptés.</li>
+          <li>Prévenir sans délai le client en cas d'annulation ou de retard.</li>
+          <li>Respecter la législation haïtienne applicable à son activité, y compris les autorisations et licences requises.</li>
+          <li>Ne pas proposer de biens ou services illicites.</li>
+        </ul>
+        <h4>3. Commission et règlement</h4>
+        <p>Une commission est prélevée sur chaque encaissement réalisé par la plateforme. Son taux dépend du forfait choisi. Les sommes encaissées, commission déduite, sont créditées au portefeuille de l'entreprise, qui peut en demander le retrait.</p>
+        <h4>4. Période d'essai et abonnement</h4>
+        <p>Toute nouvelle entreprise bénéficie de 30 jours d'utilisation gratuite à compter de son inscription. À l'issue de cette période, l'abonnement correspondant au forfait choisi devient exigible. L'entreprise peut changer de forfait ou résilier à tout moment avant la première échéance, sans frais.</p>
+        <h4>5. Données</h4>
+        <p>Les données des clients recueillies par l'entreprise via la plateforme ne peuvent être utilisées qu'aux fins de la prestation. Leur revente ou leur cession est interdite.</p>
+        <h4>6. Suspension</h4>
+        <p>Konekte peut suspendre un compte en cas de manquement grave, de réclamations répétées ou d'activité frauduleuse, après notification à l'entreprise.</p>
+        <h4>7. Résiliation</h4>
+        <p>L'entreprise peut résilier à tout moment depuis son espace. Les rendez-vous et commandes déjà acceptés restent dus.</p>
+        <h4>8. Droit applicable</h4>
+        <p>Le présent règlement est soumis au droit haïtien. Tout différend fera l'objet d'une recherche de solution amiable avant toute action.</p>
+      </div>
+      <p class="aide" id="avertLecture">Faites défiler le texte jusqu'à la fin pour activer l'acceptation.</p>
+      <label class="case-legale" id="casePolitique">
+        <input type="checkbox" id="accPolitique" disabled onchange="majCasesLegales()">
+        <span>J'ai lu et j'accepte la politique et le règlement de Konekte.</span>
+      </label>
+      <label class="case-legale" id="caseVeracite">
+        <input type="checkbox" id="accVeracite" onchange="majCasesLegales()">
+        <span>Je certifie être habilité(e) à engager cette entreprise et exact(e) dans les informations fournies.</span>
+      </label>
+    </section>
+
+    <section class="etape" data-pas="3">
+      <h1 style="font-size:20px">Votre forfait</h1>
+      <div class="encart-essai mt" id="encartEssai"></div>
+      <p class="petit muet" id="rappelChoix" style="display:none"></p>
+      <div class="grille-forfaits" id="listeForfaits"></div>
+    </section>
+
+    <section class="etape" data-pas="4">
+      <h1 style="font-size:20px">Contrat d'abonnement</h1>
+      <p class="muet petit" style="margin-top:4px">Relisez le récapitulatif, puis signez en saisissant votre nom.</p>
+      <div class="recap-ab mt" id="recapContrat"></div>
+      <div class="lecture mt" style="max-height:170px">
+        <h4>Contrat d'abonnement — version 1.0</h4>
+        <p>Le présent contrat lie l'entreprise désignée ci-dessus à Konekte pour la fourniture des services de la plateforme, selon le forfait retenu.</p>
+        <p>L'entreprise bénéficie d'une période d'essai gratuite de 30 jours. À son terme, l'abonnement mensuel du forfait choisi devient exigible, par mois d'avance, jusqu'à résiliation.</p>
+        <p>La résiliation est possible à tout moment depuis l'espace de l'entreprise. Aucun montant n'est dû si elle intervient avant la fin de la période d'essai.</p>
+        <p>La signature électronique par saisie du nom vaut acceptation du présent contrat et du règlement accepté à l'étape précédente.</p>
+      </div>
+      <label>Signature — votre nom complet *</label>
+      <input id="signature" class="champ-signature" placeholder="Marie Dorval">
+      <label>Qualité du signataire</label>
+      <input id="qualite" placeholder="Ex : propriétaire, gérante, directeur">
+      <label class="case-legale" id="caseContrat">
+        <input type="checkbox" id="accContrat" onchange="majCasesLegales()">
+        <span>J'accepte les termes de ce contrat d'abonnement.</span>
+      </label>
+    </section>
+
+    <section class="etape" data-pas="5">
+      <h1 style="font-size:20px">Activation</h1>
+      <div class="encart-essai mt" id="encartActivation"></div>
+      <div class="recap-ab mt" id="recapFinal"></div>
+      <div id="zonePaiement"></div>
+    </section>
+
+    <div class="champ-erreur" id="err"></div>
+    <div class="nav-etapes">
+      <button class="btn btn-contour" id="btnPrec" onclick="allerPas(pas-1)" style="display:none">← Précédent</button>
+      <button class="btn btn-primaire" id="btnSuiv" onclick="suivant()">Continuer</button>
+    </div>
+
+    <p class="petit centre mt">Déjà inscrit ? <a href="/connexion.html">Se connecter</a></p>
+  </div></div>
+</div>
+
+<div id="toast"></div>
+<script src="/app.js"></script>
+<script>
+let REF = null, CAT = null, GEO = null, pas = 1, compteCree = false;
+/* Adresse à laquelle le lien d'activation a été envoyé, vide si le compte a
+   été ouvert directement (envoi de courriels non configuré). */
+let attenteActivation = '';
+/* Logo et photo d'en-tête, déjà réduits et encodés, prêts à partir avec le
+   formulaire. Vides tant que l'entreprise n'en a pas déposé. */
+let imgLogo = '', imgFond = '';
+
+/* Réduction dans le navigateur avant l'envoi : une photo de téléphone pèse
+   plusieurs mégaoctets, ce que la base n'a aucune raison de porter. */
+function compresserImage(fichier, maxCote, qualite){
+  return new Promise((resoudre, rejeter) => {
+    const img = new Image();
+    img.onload = () => {
+      const ratio = Math.min(1, maxCote / Math.max(img.width, img.height));
+      const c = document.createElement('canvas');
+      c.width = Math.round(img.width * ratio); c.height = Math.round(img.height * ratio);
+      c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+      resoudre(c.toDataURL('image/jpeg', qualite));
+      URL.revokeObjectURL(img.src);
+    };
+    img.onerror = () => rejeter(new Error('Image illisible'));
+    img.src = URL.createObjectURL(fichier);
+  });
+}
+
+function afficherApercu(genre){
+  const donnees = genre === 'logo' ? imgLogo : imgFond;
+  const zone = document.getElementById(genre === 'logo' ? 'apLogo' : 'apFond');
+  const bouton = document.getElementById(genre === 'logo' ? 'btnRetirerLogo' : 'btnRetirerFond');
+  zone.innerHTML = donnees
+    ? `<img src="${donnees}" alt="">`
+    : `<span class="petit muet">${genre === 'logo' ? 'Aucun logo' : 'Aucune photo'}</span>`;
+  bouton.style.display = donnees ? '' : 'none';
+}
+
+function retirerImageInscription(genre){
+  if (genre === 'logo') { imgLogo = ''; document.getElementById('insLogo').value = ''; }
+  else { imgFond = ''; document.getElementById('insFond').value = ''; }
+  afficherApercu(genre);
+}
+
+document.getElementById('insLogo')?.addEventListener('change', async (ev) => {
+  const f = ev.target.files[0]; if (!f) return;
+  try { imgLogo = await compresserImage(f, 256, 0.85); afficherApercu('logo'); }
+  catch { toast('Impossible de lire cette image.'); ev.target.value = ''; }
+});
+document.getElementById('insFond')?.addEventListener('change', async (ev) => {
+  const f = ev.target.files[0]; if (!f) return;
+  try { imgFond = await compresserImage(f, 1400, 0.78); afficherApercu('fond'); }
+  catch { toast('Impossible de lire cette image.'); ev.target.value = ''; }
+});
+/* Forfait présélectionné depuis la page des forfaits : le visiteur a
+   déjà choisi, on ne le lui redemande pas — il pourra toujours changer. */
+let forfaitChoisi = new URLSearchParams(location.search).get('forfait') || 'pro';
+const TOTAL = 5;
+const NOMS_PAS = ['Formulaire', 'Règlement', 'Forfait', 'Contrat', 'Activation'];
+
+function dessinerFil(){
+  document.getElementById('fil').innerHTML = NOMS_PAS.map((n,i) => `
+    <div class="fil-pas ${i+1 < pas ? 'faite' : (i+1 === pas ? 'active' : '')}">
+      <div class="fil-barre"></div><span>${i+1}. ${n}</span></div>`).join('');
+}
+function allerPas(n){
+  if (n < 1 || n > TOTAL) return;
+  pas = n;
+  document.querySelectorAll('.etape').forEach(s => s.classList.toggle('on', +s.dataset.pas === pas));
+  document.getElementById('btnPrec').style.display = (pas > 1 && !compteCree) ? '' : 'none';
+  document.getElementById('btnSuiv').style.display = pas === TOTAL ? 'none' : '';
+  document.getElementById('err').textContent = '';
+  dessinerFil();
+  if (pas === 3) dessinerForfaits();
+  if (pas === 4) dessinerContrat();
+  if (pas === 5) activer();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+(async () => {
+  try {
+    REF = await api('/api/metiers');
+    const parFam = {};
+    for (const [cle, m] of Object.entries(REF.METIERS)) (parFam[m.famille] = parFam[m.famille] || []).push([cle, m]);
+    document.getElementById('metier').innerHTML = REF.FAMILLES.map(f =>
+      `<optgroup label="${f}">` + (parFam[f]||[]).map(([cle,m]) =>
+        `<option value="${cle}">${m.ico} ${m.nom.fr}</option>`).join('') + '</optgroup>').join('');
+    document.getElementById('metier').value = 'salon-beaute';
+    majAideMetier();
+  } catch { document.getElementById('metier').innerHTML = '<option value="autre">Autre activité</option>'; }
+  /* Départements et communes. Si la liste n'arrive pas, la ville reste
+     saisissable à la main : un référentiel absent ne doit pas empêcher
+     quelqu'un de s'inscrire. */
+  try {
+    GEO = (await api('/api/geo')).departements;
+    document.getElementById('departement').innerHTML =
+      '<option value="">Choisissez…</option>' + Object.entries(GEO)
+        .map(([cle, d]) => `<option value="${cle}">${ech(d.nom)}</option>`).join('');
+  } catch { GEO = null; }
+  try {
+    CAT = await api('/api/forfaits');
+    // Un forfait inexistant dans l'adresse ne doit pas bloquer l'inscription
+    if (!CAT.forfaits.some(f => f.cle === forfaitChoisi)) forfaitChoisi = 'pro';
+  } catch { CAT = null; }
+  dessinerFil();
+})();
+function majAideMetier(){
+  const m = REF && REF.METIERS[document.getElementById('metier').value];
+  if (!m) return;
+  const noms = { rdv:'prise de rendez-vous', equipe:'équipe', hotellerie:'chambres et séjours',
+    carte:'restaurant et bar', catalogue:'catalogue', commandes:'commandes et livraison',
+    inscriptions:'inscriptions', dossiers:'suivi de dossiers', urgences:'urgences' };
+  /* Les commandes en ligne sont la seule fonction du métier qui dépende
+     aussi du forfait : autant le dire ici qu'après l'inscription. */
+  const base = m.modules.filter(x => x !== 'commandes');
+  document.getElementById('aideMetier').innerHTML =
+    'Votre espace comprendra : ' + ech(base.map(x => noms[x] || x).join(', ')) + '.'
+    + (m.modules.includes('commandes')
+       ? ' <span class="muet">La vente et la livraison en ligne s\'ajoutent avec le forfait Pro.</span>' : '');
+}
+document.getElementById('metier').addEventListener('change', majAideMetier);
+
+/* Les communes du département choisi deviennent des suggestions. La ville
+   reste un champ libre : une localité absente de la liste doit pouvoir
+   s'écrire, sinon le formulaire renvoie son commerçant chez le concurrent. */
+document.getElementById('departement').addEventListener('change', () => {
+  const d = GEO && GEO[document.getElementById('departement').value];
+  document.getElementById('listeCommunes').innerHTML =
+    d ? d.communes.map((c) => `<option value="${ech(c)}">`).join('') : '';
+});
+
+function verifierMdp(){
+  const a = document.getElementById('mdp').value, b = document.getElementById('mdp2').value;
+  const z = document.getElementById('etatMdp');
+  if (!a && !b) { z.textContent = ''; z.style.color = ''; return; }
+  if (a.length < 6) { z.textContent = 'Au moins 6 caractères.'; z.style.color = 'var(--gris)'; return; }
+  if (!b) { z.textContent = 'Confirmez votre mot de passe.'; z.style.color = 'var(--gris)'; return; }
+  const ok = a === b;
+  z.textContent = ok ? '✓ Les mots de passe correspondent.' : '✕ Les mots de passe ne correspondent pas.';
+  z.style.color = ok ? 'var(--vert)' : 'var(--rouge)';
+}
+
+function verifierLecture(el){
+  if (el.scrollTop + el.clientHeight >= el.scrollHeight - 24) {
+    document.getElementById('accPolitique').disabled = false;
+    document.getElementById('avertLecture').textContent = 'Vous pouvez maintenant accepter le règlement.';
+  }
+}
+function majCasesLegales(){
+  ['casePolitique','caseVeracite','caseContrat'].forEach(id => {
+    const l = document.getElementById(id);
+    if (l) l.classList.toggle('on', l.querySelector('input').checked);
+  });
+}
+
+function dessinerForfaits(){
+  const depuisPage = new URLSearchParams(location.search).get('forfait');
+  const rappel = document.getElementById('rappelChoix');
+  if (depuisPage && rappel && CAT) {
+    const f = CAT.forfaits.find(x => x.cle === depuisPage);
+    if (f) {
+      rappel.style.display = '';
+      rappel.innerHTML = `Vous avez choisi le forfait <strong>${ech(f.nom.fr)}</strong>. Vous pouvez encore en changer ci-dessous.`;
+    }
+  }
+  if (!CAT) { document.getElementById('listeForfaits').innerHTML = '<p class="muet petit">Forfaits indisponibles.</p>'; return; }
+  document.getElementById('encartEssai').innerHTML =
+    `🎁 <strong>${CAT.joursEssai} jours gratuits</strong> — quel que soit le forfait choisi. Aucun prélèvement avant la fin de cette période, et vous pouvez changer d'avis à tout moment.`;
+  document.getElementById('listeForfaits').innerHTML = CAT.forfaits.map(f => `
+    <label class="forfait ${forfaitChoisi===f.cle?'on':''}" onclick="choisirForfait('${f.cle}')">
+      ${f.populaire ? '<span class="ruban">Le plus choisi</span>' : ''}
+      <input type="radio" name="forfait" value="${f.cle}" ${forfaitChoisi===f.cle?'checked':''}>
+      <div class="forfait-tete">
+        <span class="forfait-nom">${ech(f.nom.fr)}</span>
+        <span class="forfait-prix">${f.prixMois ? (+f.prixMois).toLocaleString('fr-HT')+' HTG' : 'Gratuit'}${f.prixMois ? '<small> / mois</small>' : ''}</span>
+      </div>
+      <p class="petit muet" style="margin-top:2px">${ech(f.resume.fr)}</p>
+      <ul>${f.avantages.fr.map(a => `<li>${ech(a)}</li>`).join('')}</ul>
+    </label>`).join('');
+}
+function choisirForfait(cle){
+  forfaitChoisi = cle;
+  document.querySelectorAll('.forfait').forEach(l =>
+    l.classList.toggle('on', l.querySelector('input').value === cle));
+}
+
+function infosForfait(){ return (CAT ? CAT.forfaits.find(f => f.cle === forfaitChoisi) : null) || { nom:{fr:'—'}, prixMois:0 }; }
+function dateFin(){
+  const d = new Date(); d.setDate(d.getDate() + (CAT ? CAT.joursEssai : 30));
+  return d.toISOString().slice(0,10);
+}
+function dessinerContrat(){
+  const f = infosForfait();
+  document.getElementById('recapContrat').innerHTML = `
+    <div><span>Entreprise</span><strong>${ech(document.getElementById('nomEnt').value || '—')}</strong></div>
+    <div><span>Responsable</span><strong>${ech(document.getElementById('nomResp').value || '—')}</strong></div>
+    <div><span>Forfait</span><strong>${ech(f.nom.fr)}</strong></div>
+    <div><span>Période gratuite</span><strong>${CAT ? CAT.joursEssai : 30} jours</strong></div>
+    <div><span>Premier prélèvement</span><strong>${dateFin()}</strong></div>
+    <div class="fort"><span>À payer aujourd'hui</span><span>0 HTG</span></div>`;
+}
+
+async function activer(){
+  const f = infosForfait();
+  document.getElementById('encartActivation').innerHTML = compteCree
+    ? `✅ <strong>Votre espace est créé.</strong> Votre essai gratuit de ${CAT ? CAT.joursEssai : 30} jours a commencé.`
+    : 'Création de votre espace…';
+  document.getElementById('recapFinal').innerHTML = `
+    <div><span>Forfait</span><strong>${ech(f.nom.fr)}</strong></div>
+    <div><span>Gratuit jusqu'au</span><strong>${dateFin()}</strong></div>
+    <div><span>Puis</span><strong>${f.prixMois ? (+f.prixMois).toLocaleString('fr-HT')+' HTG / mois' : 'Gratuit'}</strong></div>
+    <div class="fort"><span>Dû aujourd'hui</span><span>0 HTG</span></div>`;
+  if (!compteCree) return;
+  /* Le compte attend son activation : on n'affiche ni accès à l'espace ni
+     proposition de paiement, seulement la marche à suivre. */
+  if (attenteActivation) {
+    document.getElementById('encartActivation').innerHTML =
+      `📬 <strong>Vérifiez votre boîte de réception.</strong> Nous venons d'envoyer un lien d'activation à
+       <strong>${ech(attenteActivation)}</strong>.`;
+    document.getElementById('zonePaiement').innerHTML = `
+      <p class="mt">Ouvrez ce courriel et cliquez sur <strong>« Activer mon compte »</strong> : votre espace de
+      gestion s'ouvrira aussitôt. Votre essai gratuit de ${CAT ? CAT.joursEssai : 30} jours a déjà commencé.</p>
+      <p class="petit muet mt">Le courriel n'arrive pas ? Regardez dans les indésirables, puis réessayez.</p>
+      <div class="flex mt" style="gap:8px;flex-wrap:wrap">
+        <button class="btn btn-contour" id="btnRenvoi" onclick="renvoyerActivation()">Renvoyer le lien</button>
+        <a class="btn btn-fantome" href="/connexion.html">J'ai déjà activé mon compte</a>
+      </div>
+      <p class="petit muet mt">Dès que vous aurez cliqué, votre page publique sera en ligne sur Konekte.</p>`;
+    return;
+  }
+  document.getElementById('zonePaiement').innerHTML = f.prixMois > 0 ? `
+    <p class="petit muet mt">Vous n'avez rien à régler maintenant. Si vous préférez payer par avance, les mois réglés repoussent d'autant votre première échéance.</p>
+    <div class="flex mt" style="gap:8px;flex-wrap:wrap">
+      <a class="btn btn-primaire" style="flex:1" href="/dashboard.html">Accéder à mon espace</a>
+      <button class="btn btn-contour" onclick="payerAvance()">Payer 1 mois par avance</button>
+    </div>`
+    : `<a class="btn btn-primaire mt" style="width:100%" href="/dashboard.html">Accéder à mon espace</a>`;
+}
+async function renvoyerActivation(){
+  const b = document.getElementById('btnRenvoi');
+  if (b) { b.disabled = true; b.textContent = 'Envoi…'; }
+  try { await api('/api/activation/renvoyer','POST',{ email: attenteActivation }); toast('Lien renvoyé. Vérifiez votre boîte de réception.'); }
+  catch { toast('Envoi impossible pour le moment. Réessayez dans un instant.'); }
+  // Délai avant un nouvel essai : évite les envois en rafale sur un double clic
+  setTimeout(() => { if (b) { b.disabled = false; b.textContent = 'Renvoyer le lien'; } }, 30000);
+}
+
+async function payerAvance(){
+  try {
+    const r = await api('/api/mon-entreprise/abonnement/payer','POST',{ mois: 1 });
+    if (r.urlInterne || r.urlPaiement) { location.href = r.urlInterne || r.urlPaiement; return; }
+    toast('Paiement indisponible pour le moment.');
+  } catch(e){ toast(e.message); }
+}
+
+async function suivant(){
+  const err = document.getElementById('err');
+  err.textContent = '';
+  if (pas === 1) {
+    const manque = ['nomEnt','nomResp','email','mdp'].filter(id => !document.getElementById(id).value.trim());
+    if (manque.length) { err.textContent = "Le nom de l'entreprise, votre nom, l'email et le mot de passe sont obligatoires."; return; }
+    if (!document.getElementById('departement').value || !document.getElementById('ville').value.trim()) {
+      err.textContent = 'Indiquez votre département et votre ville.'; return; }
+    if (document.getElementById('mdp').value.length < 6) { err.textContent = 'Le mot de passe doit contenir au moins 6 caractères.'; return; }
+    if (document.getElementById('mdp').value !== document.getElementById('mdp2').value) {
+      err.textContent = 'Les deux mots de passe ne correspondent pas.'; return; }
+    return allerPas(2);
+  }
+  if (pas === 2) {
+    if (!document.getElementById('accPolitique').checked || !document.getElementById('accVeracite').checked) {
+      err.textContent = 'Vous devez lire et accepter les deux mentions pour continuer.'; return;
+    }
+    return allerPas(3);
+  }
+  if (pas === 3) return allerPas(4);
+  if (pas === 4) {
+    if (!document.getElementById('signature').value.trim()) { err.textContent = 'Signez en saisissant votre nom complet.'; return; }
+    if (!document.getElementById('accContrat').checked) { err.textContent = 'Acceptez les termes du contrat pour continuer.'; return; }
+    document.getElementById('btnSuiv').disabled = true;
+    try {
+      const cle = document.getElementById('metier').value || 'autre';
+      const r = await api('/api/inscription','POST',{
+        nomEntreprise: document.getElementById('nomEnt').value.trim(),
+        metier: cle,
+        categorie: (REF && REF.METIERS[cle] ? REF.METIERS[cle].famille : 'Autre'),
+        telephone: document.getElementById('tel').value.trim(),
+        adresse: document.getElementById('adresse').value.trim(),
+        ville: document.getElementById('ville').value.trim(),
+        departement: document.getElementById('departement').value,
+        nomResponsable: document.getElementById('nomResp').value.trim(),
+        email: document.getElementById('email').value.trim(),
+        motdepasse: document.getElementById('mdp').value,
+        motdepasse2: document.getElementById('mdp2').value,
+        forfait: forfaitChoisi,
+        politiqueAcceptee: true,
+        signature: document.getElementById('signature').value.trim(),
+        qualiteSignataire: document.getElementById('qualite').value.trim(),
+        logoImage: imgLogo,
+        photoFond: imgFond
+      });
+      compteCree = true;
+      /* Compte à activer : le lien part par courriel, l'espace ne s'ouvre
+         qu'après le clic. Inutile de proposer un accès qui serait refusé. */
+      if (r && r.activation) { attenteActivation = r.courriel || ''; }
+      allerPas(5);
+    } catch(e) {
+      err.textContent = e.message;
+      document.getElementById('btnSuiv').disabled = false;
+    }
+    return;
+  }
+}
+dessinerFil();
+</script>
+</body>
+</html>

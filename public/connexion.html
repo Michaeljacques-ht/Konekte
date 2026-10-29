@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Connexion — Konekte</title>
+<link rel="icon" href="/favicon.ico" sizes="any">
+<link rel="icon" type="image/png" sizes="192x192" href="/icone-192.png">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<meta name="theme-color" content="#0B2C6B">
+<link rel="stylesheet" href="/style.css">
+<style>
+body { background: var(--gris-clair); min-height: 100vh; display: grid; place-items: center; padding: 20px; }
+.boite { width: 100%; max-width: 420px; }
+.demo { background: var(--bleu-clair); border-radius: 10px; padding: 12px 14px; font-size: 13px; margin-top: 16px; }
+</style>
+</head>
+<body>
+<div class="boite">
+  <div class="centre mb"><a class="logo" style="justify-content:center" href="/"><img src="/logo.png" alt="Konekte" style="height:96px;width:auto"></a></div>
+  <div class="carte"><div class="carte-corps" style="padding:26px">
+    <h1 style="font-size:21px">Se connecter</h1>
+    <p class="muet petit" style="margin-top:4px">Accédez à votre tableau de bord.</p>
+    <form id="f">
+      <label>Email</label><input id="email" type="email" required placeholder="vous@entreprise.ht">
+      <label>Mot de passe</label><input id="mdp" type="password" required placeholder="••••••••">
+      <div class="champ-erreur" id="err"></div>
+      <button class="btn btn-primaire btn-large" style="width:100%">Se connecter</button>
+      <p class="petit centre mt"><a href="/mot-de-passe.html">Mot de passe oublié ?</a></p>
+    </form>
+    <p class="petit centre mt">Pas encore de compte ? <a href="/inscription.html">Inscrire mon entreprise</a></p>
+
+  </div></div>
+</div>
+<script src="/app.js"></script>
+<script>
+function demanderCode(defi, masque, canal){
+  const c = document.querySelector('.carte-corps') || document.body;
+  c.innerHTML = `
+    <div class="centre" style="padding:6px 0 2px">
+      <div style="font-size:36px">🔐</div>
+      <h1 style="font-size:20px;margin-top:8px">Vérification en deux étapes</h1>
+      <p class="petit muet" style="margin-top:6px">Un code à 6 chiffres vient d'être envoyé
+        à votre adresse email
+        ${masque ? '(' + masque + ')' : ''}.</p>
+    </div>
+    <label>Code reçu</label>
+    <input id="codeA2F" inputmode="numeric" maxlength="6" autocomplete="one-time-code"
+           style="text-align:center;font-size:26px;letter-spacing:.35em;font-weight:800" placeholder="000000">
+    <p class="champ-erreur" id="errCode"></p>
+    <button class="btn btn-primaire" style="width:100%" onclick="validerCode('${defi}')">Valider</button>
+    <p class="petit centre mt"><a href="/connexion.html">← Revenir à la connexion</a></p>`;
+  const champ = document.getElementById('codeA2F');
+  champ.focus();
+  // Validation dès la saisie du sixième chiffre
+  champ.addEventListener('input', () => {
+    champ.value = champ.value.replace(/\D/g, '');
+    if (champ.value.length === 6) validerCode(defi);
+  });
+}
+async function validerCode(defi){
+  const err = document.getElementById('errCode');
+  const code = document.getElementById('codeA2F').value.trim();
+  if (code.length !== 6) { err.textContent = 'Saisissez les 6 chiffres.'; return; }
+  err.textContent = '';
+  try {
+    const r = await api('/api/connexion/code', 'POST', { defi, code });
+    location.href = r.role === 'admin' ? '/admin.html' : '/dashboard.html';
+  } catch(e) { err.textContent = e.message; document.getElementById('codeA2F').value = ''; }
+}
+</script>
+<script>
+document.getElementById('f').addEventListener('submit', async (ev) => {
+  ev.preventDefault();
+  try {
+    const r = await api('/api/connexion', 'POST', { email: email.value.trim(), motdepasse: mdp.value });
+    // Compte protégé par un second facteur : un code arrive par email
+    if (r.a2f) { demanderCode(r.defi, r.destination, r.canal); return; }
+    location.href = r.role === 'admin' ? '/admin.html' : '/dashboard.html';
+  } catch (e) {
+    document.getElementById('err').textContent = e.message;
+    // Compte jamais activé : proposer le renvoi du lien plutôt que de s'arrêter là
+    if (e.details && e.details.activation) offrirRenvoi(e.details.courriel || email.value.trim());
+  }
+});
+
+/* ---- Activation du compte ---- */
+function offrirRenvoi(adresse){
+  if (document.getElementById('blocActivation')) return;
+  const zone = document.createElement('div');
+  zone.id = 'blocActivation';
+  zone.className = 'mt';
+  zone.style.marginBottom = '16px';   // sinon le bouton colle à « Se connecter »
+  zone.innerHTML = `<p class="petit muet">Le courriel n'arrive pas ? Regardez dans les indésirables, ou demandez un nouveau lien.</p>
+    <button type="button" class="btn btn-contour btn-petit mt" id="btnRenvoi">Renvoyer le lien d'activation</button>`;
+  document.getElementById('err').after(zone);
+  document.getElementById('btnRenvoi').addEventListener('click', async (ev) => {
+    const b = ev.currentTarget;
+    b.disabled = true; b.textContent = 'Envoi…';
+    try { await api('/api/activation/renvoyer', 'POST', { email: adresse }); toast('Lien renvoyé. Vérifiez votre boîte de réception.'); }
+    catch { toast('Envoi impossible pour le moment.'); }
+    setTimeout(() => { b.disabled = false; b.textContent = "Renvoyer le lien d'activation"; }, 30000);
+  });
+}
+
+/* Retour depuis le lien reçu par courriel */
+(() => {
+  const q = new URLSearchParams(location.search);
+  const etat = q.get('activation');
+  if (!etat) return;
+  const err = document.getElementById('err');
+  if (etat === 'expire') {
+    err.textContent = "Ce lien d'activation a expiré. Demandez-en un nouveau.";
+    offrirRenvoi(q.get('email') || '');
+  } else if (etat === 'inconnu') {
+    err.textContent = "Ce lien n'est plus valable. S'il a déjà servi, votre compte est actif : connectez-vous simplement ci-dessous.";
+  }
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,657 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Konekte — Réservez vos rendez-vous en Haïti</title>
+<link rel="icon" href="/favicon.ico" sizes="any">
+<link rel="icon" type="image/png" sizes="192x192" href="/icone-192.png">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<meta name="theme-color" content="#0B2C6B">
+<meta name="description" content="Konekte est la plateforme numéro 1 en Haïti pour trouver et réserver des services de qualité : santé, beauté, formation, auto et plus.">
+<link rel="stylesheet" href="/style.css">
+<style>
+/* Héros : carte blanche à barre dégradée — signature EDUCA */
+.hero { padding: 22px 0 8px; position: relative; z-index: 0; }
+
+/* ---- Bannière de marque : image en fond, textes en HTML traduisibles ---- */
+.banniere-marque { position: relative; border-radius: 20px; overflow: hidden;
+  box-shadow: var(--ombre); margin-bottom: 24px; }
+/* La photo passe derrière, assombrie côté texte pour garder la lisibilité */
+.banniere-marque::before {
+  content: ''; position: absolute; inset: 0;
+  background: url('/banniere-fond.jpg') center 40% / cover no-repeat;
+}
+.banniere-marque::after {
+  content: ''; position: absolute; inset: 0;
+  background: linear-gradient(100deg, rgba(255,255,255,.96) 0%, rgba(255,255,255,.90) 38%, rgba(255,255,255,.45) 62%, rgba(255,255,255,.18) 100%);
+}
+/* z-index 2 et non 1 : ce bloc crée un contexte d'empilement, et le menu de
+   partage qu'il contient passerait sinon sous le bandeau bleu, déclaré après
+   lui avec la même valeur. */
+.bm-texte { position: relative; z-index: 2; padding: 52px 40px 44px; max-width: 62%; }
+.bm-titre { font-size: clamp(28px, 3.5vw, 44px); line-height: 1.12; letter-spacing: -.025em; color: var(--marine); }
+.bm-titre span { display: block; }
+.bm-accent { color: var(--orange); }
+.bm-intro { color: var(--texte); font-size: clamp(15px, 1.35vw, 18px); margin: 16px 0 22px; max-width: 48ch; font-weight: 500; }
+.bm-recherche { margin: 20px 0 18px; max-width: 620px; }
+.bm-boutons { display: flex; gap: 10px; flex-wrap: wrap; }
+/* Second bouton : même forme, traitement secondaire pour ne pas
+   concurrencer l'appel principal. */
+.bm-cta2 { background: #fff; color: var(--marine); border: 2px solid var(--marine);
+  border-radius: 99px; padding: 12px 26px; font-weight: 800; font-size: 15.5px; }
+.bm-cta2:hover { background: var(--marine); color: #fff; text-decoration: none; transform: translateY(-1px); }
+.bm-cta { background: linear-gradient(90deg, #F26B21, #FF8A3D); color: #fff; border-radius: 99px;
+  padding: 14px 30px; font-weight: 800; font-size: 16px; box-shadow: 0 8px 20px rgba(242,107,33,.34); }
+.bm-cta:hover { transform: translateY(-1px); color: #fff; text-decoration: none; }
+/* Partage de la plateforme. Troisième rang visuel : il accompagne les deux
+   appels à l'action sans leur disputer l'attention. */
+.bm-partage { position: relative; }
+.bm-cta3 { background: transparent; color: var(--marine); border: 2px solid var(--bordure);
+  border-radius: 99px; padding: 12px 22px; font-weight: 800; font-size: 15.5px;
+  display: inline-flex; align-items: center; gap: 8px; cursor: pointer; }
+.bm-cta3:hover { border-color: var(--marine); background: #fff; }
+/* Position fixe, et non absolue : la bannière est en overflow:hidden pour ses
+   coins arrondis, un menu placé à l'intérieur s'y trouverait rogné. Sa place
+   exacte est calculée à l'ouverture, d'après le bouton. */
+.partage-menu { position: fixed; z-index: 60;
+  min-width: 210px; background: #fff; border: 1px solid var(--bordure);
+  border-radius: 14px; box-shadow: 0 16px 34px rgba(11,44,107,.16);
+  padding: 6px; display: flex; flex-direction: column; gap: 2px; }
+.partage-menu[hidden] { display: none; }
+.partage-menu button { display: flex; align-items: center; gap: 10px; width: 100%;
+  background: none; border: 0; padding: 10px 12px; border-radius: 10px;
+  font: inherit; font-size: 14.5px; font-weight: 600; color: var(--marine);
+  text-align: left; cursor: pointer; }
+.partage-menu button:hover { background: var(--bleu-clair); }
+.partage-menu img { width: 18px; height: 18px; object-fit: contain; }
+.partage-menu .pm-ico { width: 18px; text-align: center; font-size: 15px; }
+.bm-atouts { display: flex; gap: 22px; margin-top: 28px; flex-wrap: wrap; }
+.bm-atout { display: flex; flex-direction: column; align-items: center; gap: 9px; width: 124px;
+  text-align: center; font-size: 13px; font-weight: 700; color: var(--marine); }
+.bm-atout:hover { text-decoration: none; }
+.bm-atout:hover .bm-rond { border-color: var(--orange); transform: translateY(-3px); }
+.bm-rond { width: 60px; height: 60px; border-radius: 50%; background: #fff; border: 2px solid var(--bordure);
+  display: grid; place-items: center; font-size: 26px; transition: .15s; box-shadow: var(--ombre); }
+.bm-bandeau { position: relative; z-index: 1; background: var(--marine); display: grid;
+  grid-template-columns: repeat(4, 1fr); }
+.bm-carte { display: flex; align-items: flex-start; gap: 12px; padding: 18px 16px; color: #fff;
+  border-right: 1px solid rgba(255,255,255,.12); }
+.bm-carte:last-child { border-right: 0; }
+.bm-carte:hover { background: rgba(255,255,255,.07); text-decoration: none; color: #fff; }
+.bm-ico { width: 40px; height: 40px; border-radius: 50%; border: 2px solid var(--orange);
+  display: grid; place-items: center; font-size: 18px; flex: none; }
+.bm-carte strong { display: block; font-size: 14.5px; }
+.bm-carte em { font-style: normal; font-size: 12.5px; opacity: .8; line-height: 1.45; }
+@media (max-width: 900px) {
+  .bm-texte { max-width: 100%; padding: 34px 24px 30px; }
+  .banniere-marque::after { background: linear-gradient(180deg, rgba(255,255,255,.95) 0%, rgba(255,255,255,.88) 62%, rgba(255,255,255,.72) 100%); }
+  .bm-bandeau { grid-template-columns: 1fr 1fr; }
+  .bm-carte { border-bottom: 1px solid rgba(255,255,255,.12); }
+}
+@media (max-width: 560px) {
+  .banniere-marque { border-radius: 14px; }
+  .bm-texte { padding: 26px 18px 22px; }
+  .bm-bandeau { grid-template-columns: 1fr; }
+  .bm-atouts { gap: 12px; justify-content: center; }
+  .bm-atout { width: 46%; font-size: 12px; }
+}
+.hero h1 { font-size: clamp(30px, 4.2vw, 42px); line-height: 1.1; letter-spacing: -.03em; }
+.hero h1 .accent {
+  background: linear-gradient(90deg, #1E5FE0, #6D4AC4);
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+}
+.hero p.intro { color: var(--gris); font-size: 16px; margin: 14px 0 24px; max-width: 46ch; }
+.barre-recherche { display: flex; background: #fff; border: 1.5px solid var(--bordure); border-radius: var(--r-champ); box-shadow: var(--ombre); overflow: hidden; }
+.barre-recherche input { border: none; border-radius: 0; padding: 14px 16px; }
+.barre-recherche input:focus { outline: none; }
+.barre-recherche .sep { width: 1px; background: var(--bordure); }
+.barre-recherche button { border-radius: 0; }
+.pastille-verte { width: 40px; height: 40px; border-radius: 50%; background: var(--vert); color: #fff; display: grid; place-items: center; font-size: 20px; margin-bottom: 10px; }
+.categories { display: flex; gap: 14px; margin-top: 26px; flex-wrap: wrap; }
+.cat { display: flex; flex-direction: column; align-items: center; gap: 7px; cursor: pointer; border: none; background: none; font: inherit; }
+.cat .rond { width: 52px; height: 52px; border-radius: var(--r-pilule); background: #fff; border: 1px solid var(--bordure); display: grid; place-items: center; font-size: 22px; transition: .15s; }
+.cat:hover .rond, .cat.actif .rond { border-color: var(--bleu); background: var(--bleu-clair); }
+.cat span { font-size: 12.5px; font-weight: 600; color: var(--texte); }
+
+
+
+
+.section { padding: 44px 0; }
+.section h2 { font-size: 26px; font-weight: 800; margin-bottom: 6px; }
+.grille-entreprises { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 18px; margin-top: 22px; }
+.carte-ent { border: 1px solid var(--bordure); border-radius: var(--r-carte); overflow: hidden; background: #fff; box-shadow: var(--ombre); transition: box-shadow .18s, transform .18s; }
+.carte-ent:hover { transform: translateY(-3px); box-shadow: var(--ombre-f); }
+.carte-ent .banniere { height: 110px; display: grid; place-items: center; color: #fff; font-size: 30px; font-weight: 800; letter-spacing: .05em; }
+.carte-ent .corps { padding: 16px; }
+.etapes { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-top: 24px; }
+.etape { background: #fff; border: 1px solid var(--bordure); border-radius: 16px; padding: 22px; }
+.etape .num { width: 34px; height: 34px; border-radius: 10px; background: var(--bleu); color: #fff; display: grid; place-items: center; font-weight: 800; margin-bottom: 12px; }
+.pied { background: var(--marine); color: #94A3B8; margin-top: 40px; padding: 36px 0; font-size: 14px; }
+.pied a { color: #CBD5E1; }
+.pied .logo { color: #fff; }
+@media (max-width: 900px) {
+  .etapes { grid-template-columns: 1fr 1fr; }
+}
+@media (max-width: 560px) { .etapes { grid-template-columns: 1fr; } .barre-recherche { flex-direction: column; } .barre-recherche .sep { display: none; } }
+
+/* ===== Animations & interactivité ===== */
+@keyframes montee { from { opacity: 0; transform: translateY(22px); } to { opacity: 1; transform: none; } }
+@keyframes flotte { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
+@keyframes flotte2 { 0%,100% { transform: translateY(0) rotate(-2deg); } 50% { transform: translateY(-14px) rotate(2deg); } }
+@keyframes derive { 0%,100% { transform: translate(0,0) scale(1); } 50% { transform: translate(26px,-20px) scale(1.12); } }
+@keyframes pulsation { 0%,100% { box-shadow: 0 0 0 0 rgba(37,99,235,.35); } 60% { box-shadow: 0 0 0 14px rgba(37,99,235,0); } }
+.hero { position: relative; overflow: hidden; }
+.bulle { position: absolute; border-radius: 50%; filter: blur(46px); opacity: .5; pointer-events: none; animation: derive 11s ease-in-out infinite; }
+.bulle-1 { width: 320px; height: 320px; background: #C7DBFF; top: -90px; right: 8%; }
+.bulle-2 { width: 240px; height: 240px; background: #DCE9FF; bottom: -70px; left: 4%; animation-delay: 3s; }
+.barre-recherche:focus-within { box-shadow: 0 0 0 4px rgba(37,99,235,.14); border-color: var(--bleu); }
+.cat { transition: transform .18s, box-shadow .18s; }
+.cat:hover { transform: translateY(-3px); }
+.cat:hover .rond { animation: flotte 1.4s ease-in-out infinite; }
+.btn-primaire:hover { animation: pulsation 1.2s infinite; }
+.reveler { opacity: 0; transform: translateY(26px); transition: opacity .6s cubic-bezier(.2,.8,.2,1), transform .6s cubic-bezier(.2,.8,.2,1); }
+.reveler.vu { opacity: 1; transform: none; }
+.bande-chiffres { display: grid; grid-template-columns: repeat(4,1fr); gap: 18px; text-align: center; margin: 44px 0 8px; }
+.chiffre strong { font-size: clamp(26px,3.4vw,38px); color: var(--bleu); display: block; font-variant-numeric: tabular-nums; }
+.chiffre span { font-size: 13px; color: var(--gris); font-weight: 600; }
+.carte-ent { position: relative; }
+.carte-ent .banniere { position: relative; background-size: cover; background-position: center; transition: transform .35s; overflow: hidden; }
+.carte-ent:hover .banniere { transform: scale(1.04); }
+.carte-ent .logo-rond { position: absolute; left: 16px; top: 87px; width: 46px; height: 46px; border-radius: 12px; border: 3px solid #fff; display: grid; place-items: center; color: #fff; font-weight: 800; font-size: 16px; box-shadow: var(--ombre); overflow: hidden; z-index: 2; }
+.carte-ent .logo-rond img { width: 100%; height: 100%; object-fit: cover; }
+.carte-ent .corps { padding-top: 28px; }
+/* ===== Pied de page enrichi ===== */
+.pied-riche { background: #0A1628; color: #C8D4E6; padding: 56px 0 0; margin-top: 64px; }
+.pied-riche a { color: #C8D4E6; text-decoration: none; transition: color .15s; }
+.pied-riche a:hover { color: #60A5FA; }
+.pied-grille { display: grid; grid-template-columns: 2fr 1fr 1fr 1fr 1fr; gap: 36px; padding-bottom: 40px; }
+.pied-riche .logo { color: #fff; font-size: 22px; font-weight: 800; display: inline-flex; align-items: center; gap: 10px; }
+.pied-desc { margin-top: 14px; font-size: 14px; line-height: 1.6; max-width: 300px; }
+.pied-atouts { list-style: none; margin: 20px 0; padding: 0; display: grid; gap: 12px; }
+.pied-atouts li { display: flex; align-items: center; gap: 12px; font-size: 14px; }
+.pied-atouts li span:first-child { width: 34px; height: 34px; border-radius: 50%; background: rgba(96,165,250,.14); display: grid; place-items: center; flex: none; }
+.pied-contact { display: grid; gap: 8px; font-size: 14px; padding-top: 18px; border-top: 1px solid rgba(255,255,255,.1); }
+.pied-col h4 { color: #60A5FA; font-size: 13px; letter-spacing: .08em; margin-bottom: 16px; font-weight: 700; }
+.pied-col a { display: block; font-size: 14px; margin-bottom: 12px; }
+/* Quatre réseaux dans une colonne de 160 px : une seule rangée déborderait et
+   retomberait en 3 + 1. Un carré de 2 × 2 tient partout et paraît voulu. */
+.pied-reseaux { display: grid; grid-template-columns: repeat(2, 40px); gap: 10px; }
+.pied-reseaux a { width: 40px; height: 40px; border-radius: 50%; border: 1px solid rgba(255,255,255,.22); display: grid; place-items: center; background: #fff; transition: transform .15s, border-color .15s; }
+.pied-reseaux img { width: 24px; height: 24px; object-fit: contain; display: block; }
+.pied-reseaux a:hover { border-color: #60A5FA; transform: translateY(-2px); }
+.pied-garanties { display: grid; grid-template-columns: repeat(4, 1fr); gap: 24px; padding: 28px 0; border-top: 1px solid rgba(255,255,255,.1); border-bottom: 1px solid rgba(255,255,255,.1); }
+.pied-garanties > div { display: flex; align-items: center; gap: 14px; }
+.pied-garanties span { font-size: 26px; }
+.pied-garanties strong { display: block; color: #fff; font-size: 14px; }
+.pied-garanties p { font-size: 13px; margin-top: 3px; }
+.pied-bas { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 14px; padding: 22px 0 28px; }
+.pied-bas strong { color: #60A5FA; }
+.pied-paiements { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.pied-paiements img { height: 26px; width: auto; background: #fff; padding: 4px 8px; border-radius: 5px; display: block; }
+@media (max-width: 980px) { .pied-grille { grid-template-columns: 1fr 1fr; } .pied-garanties { grid-template-columns: 1fr 1fr; } }
+@media (max-width: 620px) { .pied-grille { grid-template-columns: 1fr; gap: 28px; } .pied-garanties { grid-template-columns: 1fr; } .pied-bas { flex-direction: column; align-items: flex-start; } }
+.badge-resort { background: linear-gradient(90deg, #0B2C6B, #F26B21); color: #fff; letter-spacing: .06em; }
+.cat-urgence .rond { border-color: #E8523F; background: #FDEBEB; }
+.cat-urgence.actif .rond, .cat-urgence:hover .rond { background: #D93025; color: #fff; border-color: transparent; }
+.badge-urgence { background: #FDEBEB; color: #B3261E; }
+.barre-install { position: fixed; left: 12px; right: 12px; bottom: 12px; z-index: 80;
+  background: #fff; border: 1px solid var(--bordure); border-radius: 16px; padding: 12px 14px;
+  box-shadow: 0 12px 34px rgba(11,44,107,.20); display: flex; align-items: center; gap: 12px;
+  max-width: 520px; margin: 0 auto; }
+.barre-install .bi-ico { width: 42px; height: 42px; border-radius: 12px; background: var(--bleu-clair);
+  display: grid; place-items: center; flex: none; }
+.bi-txt { flex: 1; min-width: 0; }
+.bi-txt strong { display: block; font-size: 14px; color: var(--marine); }
+.bi-txt span { font-size: 12.3px; color: var(--gris); line-height: 1.35; display: block; }
+.bi-fermer { border: 0; background: none; color: var(--gris); font-size: 16px; cursor: pointer;
+  padding: 4px; line-height: 1; flex: none; }
+.bi-fermer:hover { color: var(--marine); }
+@media (max-width: 480px) { .bi-txt span { display: none; } }
+/* Le chiffre « entreprise la plus visitée » est un lien */
+.chiffre a { text-decoration: none; display: block; }
+.chiffre a:hover strong { color: var(--orange); }
+.chiffre strong { display: block; }
+#cPopulaireNom { font-size: clamp(15px, 2.6vw, 21px); line-height: 1.2; }
+</style>
+</head>
+<body>
+
+<nav class="nav">
+  <div class="conteneur nav-int">
+    <button class="burger" aria-label="Menu" aria-expanded="false" onclick="basculerMenu(this)">☰</button>
+    <a class="logo" href="/"><img src="/logo-marque.png" alt="" style="height:34px;width:auto">Konekte</a>
+    <div class="nav-liens">
+      <a href="/" class="actif" data-i18n="acc.nav.accueil">Accueil</a>
+      <a href="/boutique.html" data-i18n="bq.nav">Boutique</a>
+      <a href="/mes-achats.html" data-i18n="nav.achats">Mes achats</a>
+      <a href="/categories.html" data-i18n="acc.nav.categories">Catégories</a>
+      <a href="/tutoriel.html" data-i18n="nav.tutoriel">Tutoriel</a>
+      <a href="/apropos.html" data-i18n="acc.nav.apropos">À propos</a>
+      <a href="/contact.html" data-i18n="nav.contact">Contact</a>
+      <a class="btn btn-contour lien-mobile" href="/connexion.html" data-i18n="acc.nav.connexion">Se connecter</a>
+      <a class="btn btn-primaire lien-mobile" href="/inscription.html" data-i18n="acc.nav.inscrire">Inscrire mon entreprise</a>
+    </div>
+    <div class="nav-droite">
+      <a class="btn btn-contour nav-boutique" href="/boutique.html" aria-label="Boutique" title="Boutique"><span aria-hidden="true">🛒</span><span class="nav-boutique-txt" data-i18n="bq.nav">Boutique</span></a>
+      <button class="btn btn-fantome" id="btnLangue" style="font-size:14px" onclick="basculerLangue()">🌐 FR/HT</button>
+      <a class="btn btn-contour" href="/connexion.html" data-i18n="acc.nav.connexion">Se connecter</a>
+      <a class="btn btn-primaire" href="/inscription.html" data-i18n="acc.nav.inscrire">Inscrire mon entreprise</a>
+    </div>
+  </div>
+</nav>
+
+<header class="hero">
+  <div class="conteneur">
+    <div class="banniere-marque">
+      <div class="bm-texte">
+        <h2 class="bm-titre">
+          <span data-i18n="bm.titre1">La plateforme qui connecte</span>
+          <span class="bm-accent" data-i18n="bm.titre2">clients et entreprises,</span>
+          <span class="bm-accent" data-i18n="bm.titre3">simple, rapide, efficace.</span>
+        </h2>
+        <p class="bm-intro" data-i18n="bm.intro">Konekte aide les entreprises haïtiennes à gagner en visibilité, à gérer rendez-vous, chambres, ventes et comptabilité, et à offrir une meilleure expérience à leurs clients.</p>
+        <form class="barre-recherche bm-recherche" id="formRecherche">
+          <input type="text" id="champQ" placeholder="Que cherchez-vous ?" data-i18n-placeholder="acc.rech.q" aria-label="Recherche">
+          <div class="sep"></div>
+          <input type="text" id="champLieu" placeholder="Localisation" data-i18n-placeholder="acc.rech.lieu" aria-label="Localisation">
+          <button class="btn btn-primaire" type="submit" data-i18n="acc.rech.bouton">Rechercher</button>
+        </form>
+        <div class="bm-boutons">
+          <a class="btn bm-cta" href="#categories-resultats"><span data-i18n="bm.cta">Découvrir les entreprises</span> →</a>
+          <a class="btn bm-cta2" href="/forfaits.html"><span data-i18n="bm.cta2">Inscrire mon activité</span> →</a>
+          <div class="bm-partage">
+            <button type="button" class="btn bm-cta3" id="btnPartage" aria-haspopup="true" aria-expanded="false" onclick="basculerPartage()"><span aria-hidden="true">🔗</span><span data-i18n="bm.partager">Partager</span></button>
+            <div class="partage-menu" id="menuPartage" role="menu" hidden>
+              <button type="button" role="menuitem" onclick="partagerKonekte('whatsapp')"><img src="/logos/whatsapp.png" alt="">WhatsApp</button>
+              <button type="button" role="menuitem" onclick="partagerKonekte('facebook')"><img src="/logos/facebook.png" alt="">Facebook</button>
+              <button type="button" role="menuitem" onclick="partagerKonekte('telegram')"><img src="/logos/telegram.png" alt="">Telegram</button>
+              <button type="button" role="menuitem" onclick="partagerKonekte('x')"><img src="/logos/x.png" alt="">X</button>
+              <button type="button" role="menuitem" onclick="partagerKonekte('copier')"><span class="pm-ico" aria-hidden="true">🔗</span><span data-i18n="bm.copier">Copier le lien</span></button>
+            </div>
+          </div>
+        </div>
+        <div class="bm-atouts">
+          <a class="bm-atout" href="/categories.html">
+            <span class="bm-rond">📅</span><span data-i18n="bm.a1">Rendez-vous simples et rapides</span></a>
+          <a class="bm-atout" href="/boutique.html">
+            <span class="bm-rond">🛒</span><span data-i18n="bm.a4">Acheter en ligne plus facilement</span></a>
+          <a class="bm-atout" href="/inscription.html">
+            <span class="bm-rond">📈</span><span data-i18n="bm.a2">Productivité accrue</span></a>
+          <a class="bm-atout" href="/apropos.html">
+            <span class="bm-rond">⭐</span><span data-i18n="bm.a3">Meilleure expérience client</span></a>
+        </div>
+      </div>
+      <div class="bm-bandeau">
+        <a class="bm-carte" href="#categories">
+          <span class="bm-ico">🌐</span>
+          <span><strong data-i18n="bm.c1t">Plateforme complète</strong>
+          <em data-i18n="bm.c1d">Tout ce dont votre entreprise a besoin, au même endroit.</em></span></a>
+        <a class="bm-carte" href="/boutique.html">
+          <span class="bm-ico">💻</span>
+          <span><strong data-i18n="bm.c2t">Temps et ressources</strong>
+          <em data-i18n="bm.c2d">Gérez rendez-vous, équipe et opérations sans effort.</em></span></a>
+        <a class="bm-carte" href="/apropos.html">
+          <span class="bm-ico">🔒</span>
+          <span><strong data-i18n="bm.c3t">Sécurité</strong>
+          <em data-i18n="bm.c3d">Vos données sont protégées, votre confiance garantie.</em></span></a>
+        <a class="bm-carte" href="https://wa.me/15142261860" target="_blank" rel="noopener">
+          <span class="bm-ico">🎧</span>
+          <span><strong data-i18n="bm.c4t">Support dédié</strong>
+          <em data-i18n="bm.c4d">Une équipe professionnelle toujours là pour vous aider.</em></span></a>
+      </div>
+    </div>
+  </div>
+  <div class="bulle bulle-1"></div>
+  <div class="bulle bulle-2"></div>
+</header>
+
+<main class="conteneur">
+  <div class="bande-chiffres" id="bandeChiffres" style="display:none">
+    <div class="chiffre"><strong data-cible="0" id="cEnt">0</strong><span data-i18n="acc.chiffre.entreprises">Entreprises inscrites</span></div>
+    <div class="chiffre"><strong data-cible="0" id="cVisiteurs">0</strong><span data-i18n="acc.chiffre.visiteurs">Utilisateurs</span></div>
+    <div class="chiffre"><strong data-cible="0" id="cVisites">0</strong><span data-i18n="acc.chiffre.visites">Visites</span></div>
+    <div class="chiffre"><a id="cPopulaire" href="#categories-resultats"><strong id="cPopulaireNom">—</strong><span data-i18n="acc.chiffre.populaire">Entreprise la plus visitée</span></a></div>
+  </div>
+
+
+  <section class="section" id="categories-resultats">
+    <div class="flex entre">
+      <div>
+        <h2 id="titreResultats" data-i18n="acc.res.titre">Entreprises populaires</h2>
+        <p class="muet petit" id="sousTitreResultats" data-i18n="acc.res.sous">Découvrez les entreprises les mieux notées de la plateforme.</p>
+      </div>
+    </div>
+    <div class="grille-entreprises" id="listeEntreprises"></div>
+  </section>
+
+  <section class="section" id="comment">
+    <h2 data-i18n="cm.titre">Comment ça marche</h2>
+    <p class="muet petit" data-i18n="cm.sous">Réserver, acheter, payer, recevoir : tout se fait depuis votre téléphone.</p>
+    <div class="etapes" style="grid-template-columns:repeat(auto-fit,minmax(200px,1fr))">
+      <div class="etape"><div class="num">1</div>
+        <h3 data-i18n="cm.e1t">Trouvez</h3>
+        <p class="muet petit" style="margin-top:8px" data-i18n="cm.e1d">Cherchez une entreprise par nom, activité ou ville. Parcourez la boutique en ligne pour comparer les produits de tous les vendeurs.</p></div>
+      <div class="etape"><div class="num">2</div>
+        <h3 data-i18n="cm.e2t">Réservez ou achetez</h3>
+        <p class="muet petit" style="margin-top:8px" data-i18n="cm.e2d">Un rendez-vous sur un créneau libre, une chambre pour plusieurs nuits, ou un panier de produits : le prix s'affiche avant de valider.</p></div>
+      <div class="etape"><div class="num">3</div>
+        <h3 data-i18n="cm.e3t">Choisissez la remise</h3>
+        <p class="muet petit" style="margin-top:8px" data-i18n="cm.e3d">Livraison à votre adresse, retrait sur place, ou directement dans votre chambre si vous êtes client de l'hôtel.</p></div>
+      <div class="etape"><div class="num">4</div>
+        <h3 data-i18n="cm.e4t">Payez comme vous voulez</h3>
+        <p class="muet petit" style="margin-top:8px" data-i18n="cm.e4d">En ligne par MonCash, NatCash ou Kashpaw, ou en espèces à la livraison. C'est le commerçant qui décide de ce qu'il accepte.</p></div>
+      <div class="etape"><div class="num">5</div>
+        <h3 data-i18n="cm.e5t">Suivez jusqu'au bout</h3>
+        <p class="muet petit" style="margin-top:8px" data-i18n="cm.e5d">Chaque étape vous est annoncée par courriel : commande reçue, confirmée, en préparation, en route. Avec votre référence, vous suivez aussi votre commande ou votre dossier en ligne.</p></div>
+    </div>
+  </section>
+
+  <section class="section" id="pro">
+    <span class="eyebrow" data-i18n="pro.eyebrow">Pour les entreprises</span>
+    <h2 data-i18n="pro.titre">Un seul espace pour faire tourner votre activité</h2>
+    <p class="muet" style="max-width:62ch;margin-top:8px" data-i18n="pro.intro">Votre espace s'adapte à votre métier : vous n'obtenez que les fonctions dont vous avez besoin, et vous pouvez activer les autres à tout moment.</p>
+
+    <div class="grille mt" style="grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:14px">
+      <div class="carte"><div class="carte-corps">
+        <div style="font-size:26px">🗓</div>
+        <h3 style="font-size:15.5px;margin-top:7px" data-i18n="pro.b1t">Rendez-vous et équipe</h3>
+        <p class="petit muet" style="margin-top:5px" data-i18n="pro.b1d">Créneaux calculés automatiquement, calendrier de la semaine, membres d'équipe et rappels envoyés aux clients.</p>
+      </div></div>
+      <div class="carte"><div class="carte-corps">
+        <div style="font-size:26px">🛒</div>
+        <h3 style="font-size:15.5px;margin-top:7px" data-i18n="pro.b2t">Vente en ligne</h3>
+        <p class="petit muet" style="margin-top:5px" data-i18n="pro.b2d">Catalogue avec photos et stock, panier, commandes suivies étape par étape. Vos produits apparaissent aussi dans la boutique commune.</p>
+      </div></div>
+      <div class="carte"><div class="carte-corps">
+        <div style="font-size:26px">🛵</div>
+        <h3 style="font-size:15.5px;margin-top:7px" data-i18n="pro.b3t">Livraison et retrait</h3>
+        <p class="petit muet" style="margin-top:5px" data-i18n="pro.b3d">Zones de livraison avec leur tarif, retrait sur place, service en chambre, et transmission de la course à Taksi Konekte.</p>
+      </div></div>
+      <div class="carte"><div class="carte-corps">
+        <div style="font-size:26px">💳</div>
+        <h3 style="font-size:15.5px;margin-top:7px" data-i18n="pro.b4t">Encaissement</h3>
+        <p class="petit muet" style="margin-top:5px" data-i18n="pro.b4d">MonCash, NatCash et Kashpaw, ou paiement à la remise. Vos recettes arrivent sur votre portefeuille, retirables quand vous voulez.</p>
+      </div></div>
+      <div class="carte"><div class="carte-corps">
+        <div style="font-size:26px">🛏️</div>
+        <h3 style="font-size:15.5px;margin-top:7px" data-i18n="pro.b5t">Hôtellerie complète</h3>
+        <p class="petit muet" style="margin-top:5px" data-i18n="pro.b5d">Chambres avec galerie photo, plans tarifaires, saisons, taxes, acompte et planning d'occupation.</p>
+      </div></div>
+      <div class="carte"><div class="carte-corps">
+        <div style="font-size:26px">📁</div>
+        <h3 style="font-size:15.5px;margin-top:7px" data-i18n="pro.b6t">Métiers spécialisés</h3>
+        <p class="petit muet" style="margin-top:5px" data-i18n="pro.b6d">Inscriptions pour les écoles, suivi de dossiers pour les cabinets, service d'urgence pour les cliniques et pharmacies.</p>
+      </div></div>
+    </div>
+
+    <div class="carte mt" style="background:linear-gradient(120deg,var(--marine),#1D3A6E);border:none">
+      <div class="carte-corps centre" style="padding:40px 24px;color:#fff">
+        <h2 style="color:#fff" data-i18n="pro.cta.titre">30 jours gratuits pour essayer</h2>
+        <p style="color:#B9C6E4;max-width:56ch;margin:10px auto 22px" data-i18n="pro.cta.texte">Aucun prélèvement pendant 30 jours, quel que soit le forfait. Vous changez de forfait ou vous arrêtez quand vous voulez, sans frais.</p>
+        <a class="btn btn-primaire btn-large" href="/inscription.html" data-i18n="pro.cta.bouton">Inscrire mon entreprise</a>
+        <p class="petit" style="color:#8FA3C9;margin-top:14px" data-i18n="pro.cta.note">Inscription en 5 étapes · Espace prêt en quelques minutes</p>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<footer class="pied-riche">
+  <div class="conteneur">
+    <div class="pied-grille">
+
+      <div class="pied-marque">
+        <a class="logo" href="/"><img src="/logo-marque.png" alt="" style="height:38px;width:auto">Konekte</a>
+        <p class="pied-desc" data-i18n="pied.desc">La plateforme haïtienne qui réunit rendez-vous, hôtellerie, vente en ligne, dossiers et comptabilité.</p>
+        <ul class="pied-atouts">
+          <li><span>🕐</span><span data-i18n="pied.atout1">Gagnez du temps</span></li>
+          <li><span>📅</span><span data-i18n="pied.atout2">Moins d'appels, moins d'absences</span></li>
+          <li><span>👥</span><span data-i18n="pied.atout3">Plus de clients satisfaits</span></li>
+        </ul>
+        <div class="pied-contact">
+          <a href="tel:+15142261860">📞 +1 514 226 1860</a>
+          <a href="mailto:contact@bizniskonekte.tech">✉️ contact@bizniskonekte.tech</a>
+          <span>📍 Haïti</span>
+        </div>
+      </div>
+
+      <div class="pied-col">
+        <h4 data-i18n="pied.produit">PRODUIT</h4>
+        <a href="#comment" data-i18n="pied.fonctionnalites">Fonctionnalités</a>
+        <a href="/categories.html" data-i18n="pied.categories">Catégories</a>
+        <a href="/boutique.html" data-i18n="bq.nav">Boutique</a>
+        <a href="/inscription.html" data-i18n="pied.inscrire">Inscrire mon entreprise</a>
+        <a href="/connexion.html" data-i18n="pied.connexion">Connexion</a>
+      </div>
+
+      <div class="pied-col">
+        <h4 data-i18n="pied.entreprise">ENTREPRISE</h4>
+        <a href="/apropos.html" data-i18n="pied.apropos">À propos de nous</a>
+        <a href="/partenaire.html" data-i18n="pied.partenaire">Devenir partenaire</a>
+        <a href="/contact.html" data-i18n="pied.contact">Contact</a>
+      </div>
+
+      <div class="pied-col">
+        <h4 data-i18n="pied.aide">AIDE</h4>
+        <a href="https://wa.me/15142261860" target="_blank" rel="noopener" data-i18n="pied.support">Support WhatsApp</a>
+        <a href="/tutoriel.html" data-i18n="nav.tutoriel">Tutoriel</a>
+        <a href="/question.html" data-i18n="pied.question">Poser une question</a>
+      </div>
+
+      <div class="pied-col pied-suivi">
+        <h4 data-i18n="pied.suivez">SUIVEZ-NOUS</h4>
+        <div class="pied-reseaux">
+          <a href="https://wa.me/15142261860" target="_blank" rel="noopener" title="WhatsApp"><img src="/logos/whatsapp.png" alt="WhatsApp"></a>
+          <a href="https://www.facebook.com/konekte2026" target="_blank" rel="noopener" title="Facebook"><img src="/logos/facebook.png" alt="Facebook"></a>
+          <a href="https://www.instagram.com/konekte2026" target="_blank" rel="noopener" title="Instagram"><img src="/logos/instagram.png" alt="Instagram"></a>
+          <a href="https://t.me/Mike2334" target="_blank" rel="noopener" title="Telegram"><img src="/logos/telegram.png" alt="Telegram"></a>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="pied-garanties">
+      <div><span>🔒</span><div><strong data-i18n="pied.g1t">Sécurisé et fiable</strong><p data-i18n="pied.g1d">Vos données sont protégées</p></div></div>
+      <div><span>☁️</span><div><strong data-i18n="pied.g2t">Accessible partout</strong><p data-i18n="pied.g2d">Sur ordinateur et mobile</p></div></div>
+      <div><span>📆</span><div><strong data-i18n="pied.g3t">Disponible 24h/24, 7j/7</strong><p data-i18n="pied.g3d">Vos clients réservent à tout moment</p></div></div>
+      <div><span>🎧</span><div><strong data-i18n="pied.g4t">Support local en Haïti</strong><p data-i18n="pied.g4d">Nous sommes là pour vous</p></div></div>
+    </div>
+
+    <div class="pied-bas">
+      <p class="petit">© 2026 <strong>KONEKTE</strong> — <span data-i18n="pied.droits">Tous droits réservés.</span></p>
+      <p class="petit"><a href="/mes-achats.html">Mes achats</a> · <a href="/recu.html">Mon reçu</a> · <a href="/confidentialite.html">Confidentialité</a></p>
+      <p class="petit" data-i18n="pied.concu">Conçu en Haïti 💙 pour les entreprises haïtiennes.</p>
+      <div class="pied-paiements">
+        <span class="petit">🔒 <span data-i18n="pied.paiements">Paiements sécurisés</span></span>
+        <img src="/logos/moncash.png" alt="MonCash" title="MonCash">
+        <img src="/logos/natcash.png" alt="NatCash" title="NatCash">
+        <img src="/logos/kashpaw.png" alt="Kash Paw" title="Kash Paw">
+      </div>
+    </div>
+  </div>
+</footer>
+
+<script src="/app.js"></script>
+<script src="/translations.js"></script>
+<script>
+let catActive = 'Tout';
+
+/* ---- Partage de la plateforme ----
+   L'adresse vient du serveur, jamais de la barre du navigateur : un visiteur
+   arrivé par l'ancienne adresse Render ne doit pas la propager à ses contacts. */
+let baseKonekte = '';
+api('/api/url-publique').then((r) => { baseKonekte = (r && r.url) || ''; }).catch(() => {});
+
+function placerPartage() {
+  const menu = document.getElementById('menuPartage');
+  const btn = document.getElementById('btnPartage');
+  if (!menu || menu.hasAttribute('hidden')) return;
+  const r = btn.getBoundingClientRect();
+  const h = menu.offsetHeight || 240;
+  const l = menu.offsetWidth || 210;
+  // Vers le bas s'il y a la place, vers le haut sinon
+  const bas = r.bottom + 8 + h <= window.innerHeight;
+  menu.style.top = (bas ? r.bottom + 8 : Math.max(8, r.top - 8 - h)) + 'px';
+  menu.style.left = Math.min(r.left, window.innerWidth - l - 12) + 'px';
+}
+
+function basculerPartage() {
+  const menu = document.getElementById('menuPartage');
+  const btn = document.getElementById('btnPartage');
+  const ouvrir = menu.hasAttribute('hidden');
+  if (ouvrir) { menu.removeAttribute('hidden'); placerPartage(); }
+  else menu.setAttribute('hidden', '');
+  btn.setAttribute('aria-expanded', ouvrir ? 'true' : 'false');
+}
+window.addEventListener('resize', placerPartage);
+window.addEventListener('scroll', placerPartage, { passive: true });
+function fermerPartage() {
+  const menu = document.getElementById('menuPartage');
+  if (menu && !menu.hasAttribute('hidden')) {
+    menu.setAttribute('hidden', '');
+    document.getElementById('btnPartage').setAttribute('aria-expanded', 'false');
+  }
+}
+document.addEventListener('click', (ev) => {
+  if (!ev.target.closest('.bm-partage')) fermerPartage();
+});
+document.addEventListener('keydown', (ev) => { if (ev.key === 'Escape') fermerPartage(); });
+
+window.partagerKonekte = async (canal) => {
+  fermerPartage();
+  const url = baseKonekte || location.origin;
+  const ht = localStorage.getItem('langue') === 'ht';
+  const texte = ht
+    ? 'Konekte — jwenn biznis ayisyen yo, pran randevou epi achte an liy : '
+    : 'Konekte — trouvez les entreprises haïtiennes, prenez rendez-vous et achetez en ligne : ';
+  if (canal === 'whatsapp') window.open('https://wa.me/?text=' + encodeURIComponent(texte + url), '_blank', 'noopener');
+  else if (canal === 'facebook') window.open('https://www.facebook.com/sharer/sharer.php?u=' + encodeURIComponent(url), '_blank', 'noopener');
+  else if (canal === 'telegram') window.open('https://t.me/share/url?url=' + encodeURIComponent(url) + '&text=' + encodeURIComponent(texte.trim()), '_blank', 'noopener');
+  else if (canal === 'x') window.open('https://twitter.com/intent/tweet?url=' + encodeURIComponent(url) + '&text=' + encodeURIComponent(texte.trim()), '_blank', 'noopener');
+  else {
+    // Sur téléphone, le partage natif ouvre toutes les applications installées.
+    if (navigator.share) { try { await navigator.share({ title: 'Konekte', text: texte.trim(), url }); return; } catch { /* annulé */ } }
+    try { await navigator.clipboard.writeText(url); toast(ht ? 'Lyen an kopye !' : 'Lien copié !'); }
+    catch { prompt(ht ? 'Kopye lyen an :' : 'Copiez le lien :', url); }
+  }
+};
+
+async function charger() {
+  const q = document.getElementById('champQ').value.trim();
+  const lieu = document.getElementById('champLieu').value.trim();
+  const recherche = [q, lieu].filter(Boolean).join(' ');
+  const params = new URLSearchParams();
+  if (recherche) params.set('q', recherche);
+  if (catActive === '__urgence') params.set('urgence', '1');
+  else if (catActive !== 'Tout') params.set('categorie', catActive);
+  const liste = await api('/api/entreprises?' + params);
+  const cible = document.getElementById('listeEntreprises');
+  document.getElementById('titreResultats').textContent =
+    recherche || catActive !== 'Tout' ? `Résultats (${liste.length})` : 'Entreprises populaires';
+  if (!liste.length) {
+    cible.innerHTML = '<p class="muet">Aucune entreprise ne correspond à votre recherche pour le moment. Essayez un autre mot-clé ou une autre catégorie.</p>';
+    return;
+  }
+  cible.innerHTML = liste.map((e, i) => {
+    const fond = e.photoFond
+      ? `linear-gradient(135deg, ${ech(e.couleur)}99, ${ech(e.couleur2)}66), url('${e.photoFond}')`
+      : `linear-gradient(135deg, ${ech(e.couleur)}, ${ech(e.couleur2)})`;
+    const logo = e.logoImage
+      ? `<img src="${e.logoImage}" alt="Logo ${ech(e.nom)}">`
+      : ech(e.logoTexte);
+    return `
+    <a class="carte-ent reveler" style="transition-delay:${Math.min(i * 70, 350)}ms" href="/${e.slug}">
+      <div class="banniere" style="background:${fond};background-size:cover;background-position:center">${e.photoFond ? '' : ech(e.logoTexte)}</div>
+      <div class="logo-rond" style="background:${ech(e.couleur)}">${logo}</div>
+      <div class="corps">
+        <div class="flex entre">
+          <strong>${ech(e.nom)}</strong>
+          ${e.plan === 'premium' ? '<span class="badge badge-bleu">Premium</span>' : ''}
+        </div>
+        <p class="petit muet">${ICONES_CAT[e.categorie] || '✨'} ${ech(e.categorie)} • ${ech(e.adresse.split(',').pop().trim())}</p>
+        ${e.formule === 'resort' ? `<span class="badge badge-resort" style="margin-top:6px">🏝️ ${t('resort.badge')}</span>` : ''}
+        ${e.urgence ? `<span class="badge badge-urgence" style="margin-top:6px">🚨 ${e.urgence.permanence ? t('cat.urgence24') : t('cat.urgence')}</span>` : ''}
+        <div class="flex entre mt" style="margin-top:12px">
+          <span class="petit"><span class="etoiles">${etoiles(e.note)}</span> <strong>${e.note || '—'}</strong> <span class="muet">(${e.totalAvis} avis)</span></span>
+          <span class="btn btn-primaire btn-petit">${ech((e.action && e.action[localStorage.getItem('langue')==='ht'?'ht':'fr']) || 'Réserver')}</span>
+        </div>
+      </div>
+    </a>`;
+  }).join('');
+  observerReveles();
+  majChiffres(liste);
+}
+
+// ---- Compteurs animés ----
+let chiffresFaits = false;
+function majChiffres(liste){
+  if (chiffresFaits || !liste.length) return;
+  chiffresFaits = true;
+  animerCompteur(document.getElementById('cEnt'), liste.length);
+  /* Fréquentation de la plateforme : chiffres agrégés. */
+  api('/api/statistiques').then((s) => {
+    const bande = document.getElementById('bandeChiffres');
+    if (!s.afficher) { if (bande) bande.remove(); return; }
+    if (bande) bande.style.display = '';
+    animerCompteur(document.getElementById('cEnt'), s.entreprises);
+    animerCompteur(document.getElementById('cVisiteurs'), s.visiteurs);
+    animerCompteur(document.getElementById('cVisites'), s.visites);
+    const nom = document.getElementById('cPopulaireNom');
+    const lien = document.getElementById('cPopulaire');
+    if (s.populaire) {
+      // Un nom long déborderait : on le raccourcit proprement
+      const court = s.populaire.nom.length > 22 ? s.populaire.nom.slice(0, 21) + '…' : s.populaire.nom;
+      nom.textContent = court;
+      nom.title = s.populaire.nom;
+      lien.href = '/' + s.populaire.slug;
+    } else {
+      nom.textContent = '—';
+      lien.removeAttribute('href');
+    }
+  }).catch(() => {});
+}
+function animerCompteur(el, cible){
+  const duree = 1200, depart = performance.now();
+  function pas(t){
+    const p = Math.min(1, (t - depart) / duree);
+    el.textContent = Math.round(cible * (1 - Math.pow(1 - p, 3)));
+    if (p < 1) requestAnimationFrame(pas);
+  }
+  requestAnimationFrame(pas);
+}
+
+// ---- Révélation au défilement ----
+const observateur = new IntersectionObserver((entrees) => {
+  entrees.forEach(en => { if (en.isIntersecting) { en.target.classList.add('vu'); observateur.unobserve(en.target); } });
+}, { threshold: 0.12 });
+function observerReveles(){
+  document.querySelectorAll('.reveler:not(.vu)').forEach(el => observateur.observe(el));
+}
+document.querySelectorAll('.etape, #comment h2, #pro .carte').forEach(el => el.classList.add('reveler'));
+observerReveles();
+
+document.getElementById('formRecherche').addEventListener('submit', (ev) => {
+  ev.preventDefault(); charger();
+  document.getElementById('categories-resultats').scrollIntoView({ behavior: 'smooth' });
+});
+document.querySelectorAll('.cat').forEach(b => b.addEventListener('click', () => {
+  catActive = b.dataset.cat;
+  document.querySelectorAll('.cat').forEach(x => x.classList.toggle('actif', x === b));
+  charger();
+  document.getElementById('categories-resultats').scrollIntoView({ behavior: 'smooth' });
+}));
+charger();
+</script>
+<div id="barreInstall" class="barre-install" style="display:none">
+  <span class="bi-ico"><img src="/logo-marque.png" alt="" style="width:26px;height:26px"></span>
+  <div class="bi-txt">
+    <strong data-i18n="inst.titre">Installez Konekte</strong>
+    <span data-i18n="inst.sous">Accès direct depuis votre écran d'accueil, sans passer par le navigateur.</span>
+  </div>
+  <button class="btn btn-primaire btn-petit" onclick="installerApp()" data-i18n="inst.bouton">Installer</button>
+  <button class="bi-fermer" onclick="fermerInstall()" aria-label="Fermer">✕</button>
+</div>
+
+</body>
+</html>

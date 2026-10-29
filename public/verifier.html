@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Vérification d'un paiement — Konekte</title>
+<meta name="robots" content="noindex">
+<link rel="icon" href="/favicon.ico" sizes="any">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<meta name="theme-color" content="#0B2C6B">
+<link rel="stylesheet" href="/style.css">
+<style>
+body { background: var(--fond); min-height: 100vh; display: grid; place-items: center; padding: 20px; }
+.boite { width: 100%; max-width: 440px; }
+.verdict { border-radius: 20px; padding: 30px 26px; text-align: center; color: #fff; }
+.verdict.ok { background: linear-gradient(140deg, #0E9F6E, #06835A); }
+.verdict.non { background: linear-gradient(140deg, #D93025, #A81E16); }
+.verdict.attente { background: linear-gradient(140deg, #F26B21, #C4520E); }
+.rond { width: 78px; height: 78px; border-radius: 50%; background: rgba(255,255,255,.2);
+  display: grid; place-items: center; font-size: 40px; margin: 0 auto 16px; }
+.verdict h1 { font-size: 24px; color: #fff; margin: 0; }
+.verdict .montant { font-size: 34px; font-weight: 800; margin-top: 10px; }
+.verdict p { opacity: .9; font-size: 14px; margin-top: 6px; }
+.detail { background: #fff; border-radius: 16px; padding: 20px 22px; margin-top: 14px; }
+.detail .ligne { display: flex; justify-content: space-between; gap: 14px; padding: 8px 0;
+  border-bottom: 1px solid var(--bordure); font-size: 14px; }
+.detail .ligne:last-child { border-bottom: 0; }
+.detail .ligne span:first-child { color: var(--gris); }
+.detail .ligne span:last-child { font-weight: 700; color: var(--marine); text-align: right; }
+</style>
+<script src="/app.js"></script>
+</head>
+<body>
+<div class="boite">
+  <div class="centre mb"><a class="logo" style="justify-content:center" href="/"><img src="/logo.png" alt="Konekte" style="height:70px;width:auto"></a></div>
+  <div id="resultat"><p class="centre muet">Vérification en cours…</p></div>
+  <p class="petit centre mt"><a href="/">← Retour à l'accueil</a></p>
+</div>
+
+<div id="toast"></div>
+<script>
+const METHODES = { moncash:'MonCash', natcash:'NatCash', kashpaw:'Kashpaw', all:'Paiement en ligne' };
+
+function bloc(classe, icone, titre, montant, sous){
+  return `<div class="verdict ${classe}">
+    <div class="rond">${icone}</div>
+    <h1>${titre}</h1>
+    ${montant ? `<div class="montant">${montant}</div>` : ''}
+    <p>${sous}</p>
+  </div>`;
+}
+
+(async () => {
+  const p = new URLSearchParams(location.search);
+  const ref = p.get('ref'), c = p.get('c');
+  const z = document.getElementById('resultat');
+  if (!ref || !c) {
+    z.innerHTML = bloc('non', '✕', 'Lien incomplet', '',
+      "Scannez de nouveau le code QR du reçu.");
+    return;
+  }
+  let d;
+  try {
+    d = await api(`/api/verifier-recu?ref=${encodeURIComponent(ref)}&c=${encodeURIComponent(c)}`);
+  } catch (e) {
+    // Signature invalide ou reçu inconnu : on ne distingue pas, pour ne rien révéler
+    z.innerHTML = bloc('non', '✕', 'Reçu non authentifié', '',
+      "Ce reçu ne correspond à aucun paiement enregistré. Ne le considérez pas comme une preuve.");
+    return;
+  }
+
+  const paye = d.statut === 'confirme';
+  /* Trois situations, et non deux. Une commande payable à la remise est
+     parfaitement authentique : dire « n'acceptez pas ce reçu » ferait
+     refuser un client honnête devant le comptoir. */
+  const aRegler = d.statut === 'a_regler';
+  const montant = (+d.montant).toLocaleString('fr-HT') + ' HTG';
+  z.innerHTML =
+    (paye
+      ? bloc('ok', '✓', 'Paiement authentifié', montant, 'Ce reçu correspond à un paiement bien reçu.')
+      : aRegler
+      ? bloc('attente', '🧾', 'Commande authentifiée', montant,
+          'Cette commande est bien enregistrée chez Konekte. Le montant est à encaisser au moment de la remise.')
+      : bloc('attente', '⏳', 'Paiement non confirmé', montant,
+          "Le paiement existe mais n'a pas été confirmé. N'acceptez pas ce reçu comme preuve."))
+    + `<div class="detail">
+        <div class="ligne"><span>Référence</span><span>${ech(d.reference)}</span></div>
+        ${d.objet ? `<div class="ligne"><span>Objet</span><span>${ech(d.objet)}</span></div>` : ''}
+        ${d.client ? `<div class="ligne"><span>Client</span><span>${ech(d.client)}</span></div>` : ''}
+        <div class="ligne"><span>Entreprise</span><span>${ech(d.entreprise)}</span></div>
+        <div class="ligne"><span>${aRegler ? 'Règlement' : 'Moyen'}</span><span>${aRegler
+          ? 'À la remise' : ech(METHODES[d.methode] || d.methode || '—')}</span></div>
+        <div class="ligne"><span>Date</span><span>${new Date(d.le).toLocaleString('fr-HT')}</span></div>
+        ${d.transaction ? `<div class="ligne"><span>Transaction</span><span class="petit">${ech(d.transaction)}</span></div>` : ''}
+      </div>
+      <p class="aide centre mt">Ces informations proviennent du serveur Konekte, pas du reçu lui-même.</p>`;
+})();
+</script>
+</body>
+</html>

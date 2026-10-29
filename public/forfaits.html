@@ -1,0 +1,166 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Nos forfaits — Konekte</title>
+<link rel="icon" href="/favicon.ico" sizes="any">
+<link rel="icon" type="image/png" sizes="192x192" href="/icone-192.png">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<meta name="theme-color" content="#0B2C6B">
+<meta name="description" content="Trois forfaits de 1 000 à 2 500 HTG par mois pour inscrire votre activité, tous avec 30 jours gratuits. Rendez-vous, vente en ligne, livraison et encaissement.">
+<link rel="stylesheet" href="/style.css">
+<style>
+.entete-p { background:#fff; border:1px solid var(--bordure); border-radius:22px; padding:32px 30px;
+  box-shadow:var(--ombre); position:relative; overflow:hidden; margin:24px 0 26px; }
+.entete-p::before { content:''; position:absolute; top:0; left:0; right:0; height:5px; background:var(--degrade-accent); }
+.entete-p h1 { font-size:clamp(24px,3vw,34px); letter-spacing:-.025em; }
+.entete-p .accent { color:var(--orange); }
+.deux-col { display:grid; grid-template-columns:1.15fr .85fr; gap:20px; align-items:start; }
+@media (max-width:860px){ .deux-col { grid-template-columns:1fr; } }
+.moyen { display:flex; gap:13px; align-items:flex-start; padding:15px 0; border-bottom:1px solid var(--bordure); }
+.moyen:last-child { border-bottom:0; }
+.moyen .ico { width:44px; height:44px; border-radius:12px; display:grid; place-items:center;
+  font-size:20px; background:var(--bleu-clair); flex:none; }
+.moyen strong { display:block; font-size:14.5px; color:var(--marine); }
+.moyen a { font-size:14px; }
+.moyen .petit { color:var(--gris); }
+.faq details { border:1px solid var(--bordure); border-radius:var(--r-champ); padding:13px 16px; margin-bottom:9px; background:#fff; }
+.faq summary { cursor:pointer; font-weight:700; font-size:14px; color:var(--marine); }
+.faq p { font-size:13.5px; color:var(--texte); margin-top:8px; line-height:1.6; }
+.deux { display:grid; grid-template-columns:1fr 1fr; gap:0 14px; }
+@media (max-width:560px){ .deux { grid-template-columns:1fr; } }
+.grille-f { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(270px, 1fr)); }
+.carte-f { position: relative; background: #fff; border: 2px solid var(--bordure); border-radius: 18px;
+  padding: 26px 24px; display: flex; flex-direction: column; transition: border-color .16s, box-shadow .16s, transform .16s; }
+.carte-f:hover { border-color: var(--bleu); box-shadow: var(--ombre-f); transform: translateY(-3px); }
+.carte-f.vedette { border-color: var(--orange); }
+.ruban-f { position: absolute; top: -12px; left: 50%; transform: translateX(-50%);
+  background: var(--orange); color: #fff; border-radius: 99px; padding: 4px 16px; font-size: 11.5px; font-weight: 800; white-space: nowrap; }
+.carte-f h2 { font-size: 19px; color: var(--marine); }
+.prix-f { font-size: 33px; font-weight: 800; color: var(--marine); margin-top: 10px; line-height: 1.1; }
+.prix-f small { font-size: 13px; font-weight: 600; color: var(--gris); }
+.commission-f { display: inline-block; margin-top: 8px; background: var(--bleu-clair); color: var(--marine);
+  border-radius: 99px; padding: 4px 12px; font-size: 12.5px; font-weight: 700; }
+.carte-f ul { list-style: none; margin: 16px 0 0; padding: 0; display: grid; gap: 7px; }
+.carte-f li { font-size: 13.5px; color: var(--texte); padding-left: 22px; position: relative; line-height: 1.4; }
+.carte-f li::before { content: '✓'; position: absolute; left: 0; color: var(--vert); font-weight: 800; }
+.pied-f { margin-top: auto; padding-top: 20px; }
+.encart-essai { background: var(--vert-fond); border-radius: var(--r-champ); padding: 16px 18px; }
+.encart-essai strong { color: #07684A; }
+.comparatif td, .comparatif th { font-size: 13px; }
+</style>
+<script src="/app.js"></script>
+<script src="/translations.js"></script>
+</head>
+<body>
+
+<nav class="nav">
+  <div class="conteneur nav-int">
+    <button class="burger" aria-label="Menu" aria-expanded="false" onclick="basculerMenu(this)">☰</button>
+    <a class="logo" href="/"><img src="/logo-marque.png" alt="" style="height:34px;width:auto">Konekte</a>
+    <div class="nav-liens">
+      <a href="/" data-i18n="acc.nav.accueil">Accueil</a>
+      <a href="/boutique.html" data-i18n="bq.nav">Boutique</a>
+      <a href="/mes-achats.html" data-i18n="nav.achats">Mes achats</a>
+      <a href="/categories.html" data-i18n="acc.nav.categories">Catégories</a>
+      <a href="/tutoriel.html" data-i18n="nav.tutoriel">Tutoriel</a>
+      <a href="/apropos.html" data-i18n="acc.nav.apropos">À propos</a>
+      <a href="/forfaits.html" data-i18n="nav.forfaits">Forfaits</a>
+      <a href="/contact.html" data-i18n="nav.contact">Contact</a>
+      <a class="btn btn-contour lien-mobile" href="/connexion.html" data-i18n="acc.nav.connexion">Se connecter</a>
+      <a class="btn btn-primaire lien-mobile" href="/inscription.html" data-i18n="acc.nav.inscrire">Inscrire mon entreprise</a>
+    </div>
+    <div class="nav-droite">
+      <button class="btn btn-fantome" id="btnLangue" style="font-size:14px" onclick="basculerLangue()">🌐 FR/HT</button>
+      <a class="btn btn-contour" href="/connexion.html" data-i18n="acc.nav.connexion">Se connecter</a>
+      <a class="btn btn-primaire" href="/inscription.html" data-i18n="acc.nav.inscrire">Inscrire mon entreprise</a>
+    </div>
+  </div>
+</nav>
+
+<main class="conteneur">
+  <section class="entete-p">
+    <span class="eyebrow">Pour les entreprises</span>
+    <h1>Inscrivez votre activité, <span class="accent">30 jours gratuits</span></h1>
+    <p class="muet" style="margin-top:9px;max-width:62ch">Choisissez la formule qui correspond à votre activité. Vous pourrez en changer à tout moment, sans perdre votre période d'essai.</p>
+    <div class="encart-essai mt" id="essai"></div>
+  </section>
+
+  <div class="grille-f" id="grille"><p class="muet">Chargement des forfaits…</p></div>
+
+  <h2 style="margin-top:38px">Ce qui est compris dans tous les forfaits</h2>
+  <div class="grille mt" style="grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:14px">
+    <div class="panneau"><strong>🌐 Une page publique</strong>
+      <p class="petit muet" style="margin-top:4px">Votre adresse à vous, avec services, horaires, photos et avis clients.</p></div>
+    <div class="panneau"><strong>📱 Code QR et flyer</strong>
+      <p class="petit muet" style="margin-top:4px">Vos clients scannent et arrivent directement sur votre page.</p></div>
+    <div class="panneau"><strong>💬 Messages WhatsApp</strong>
+      <p class="petit muet" style="margin-top:4px">Vos clients sont prévenus à chaque étape, automatiquement.</p></div>
+    <div class="panneau"><strong>💳 Encaissement</strong>
+      <p class="petit muet" style="margin-top:4px">MonCash, NatCash et Kashpaw, ou paiement à la remise.</p></div>
+    <div class="panneau"><strong>🔐 Compte protégé</strong>
+      <p class="petit muet" style="margin-top:4px">Vérification en deux étapes : un code envoyé par courriel à chaque connexion.</p></div>
+    <div class="panneau"><strong>📊 Statistiques</strong>
+      <p class="petit muet" style="margin-top:4px">Visites de votre page, provenance et régions de vos clients.</p></div>
+  </div>
+
+  <h2 style="margin-top:38px">Questions fréquentes</h2>
+  <div class="faq mt">
+    <details><summary>Que se passe-t-il après les 30 jours ?</summary>
+      <p>L'abonnement du forfait choisi devient exigible. Vous êtes prévenu à l'avance, et vous pouvez changer de forfait ou arrêter sans frais avant l'échéance.</p></details>
+    <details><summary>Qu'est-ce que la commission ?</summary>
+      <p>Un pourcentage prélevé sur les paiements encaissés en ligne par la plateforme. Rien n'est prélevé sur les paiements réglés en espèces à la livraison.</p></details>
+    <details><summary>Puis-je changer de forfait plus tard ?</summary>
+      <p>Oui, à tout moment depuis votre espace. Cela ne modifie pas votre date de fin d'essai.</p></details>
+    <details><summary>Faut-il un ordinateur ?</summary>
+      <p>Non. Tout fonctionne depuis un téléphone : votre espace, vos rendez-vous, vos commandes et vos retraits.</p></details>
+  </div>
+
+  <div class="carte mt" style="background:linear-gradient(120deg,var(--marine),#1D3A6E);border:none;margin-top:34px">
+    <div class="carte-corps centre" style="padding:38px 24px;color:#fff">
+      <h2 style="color:#fff">Une hésitation ?</h2>
+      <p style="color:#B9C6E4;max-width:52ch;margin:10px auto 20px">Écrivez-nous sur WhatsApp, nous vous aiderons à choisir la formule adaptée à votre activité.</p>
+      <a class="btn btn-succes btn-large" target="_blank" rel="noopener" href="https://wa.me/15142261860">💬 Nous écrire sur WhatsApp</a>
+    </div>
+  </div>
+</main>
+
+<footer class="pied-riche" style="margin-top:56px">
+  <div class="conteneur">
+    <div class="pied-bas">
+      <p class="petit">© 2026 <strong>KONEKTE</strong> — <span data-i18n="pied.droits">Tous droits réservés.</span></p>
+      <p class="petit"><a href="/mes-achats.html">Mes achats</a> · <a href="/recu.html">Mon reçu</a> · <a href="/confidentialite.html">Confidentialité</a></p>
+      <p class="petit" data-i18n="pied.concu">Conçu en Haïti 💙 pour les entreprises haïtiennes.</p>
+    </div>
+  </div>
+</footer>
+
+<div id="toast"></div>
+<script>
+(async () => {
+  let cat;
+  try { cat = await api('/api/forfaits'); }
+  catch { document.getElementById('grille').innerHTML = '<p class="muet">Forfaits indisponibles pour le moment.</p>'; return; }
+
+  document.getElementById('essai').innerHTML =
+    `🎁 <strong>${cat.joursEssai} jours gratuits</strong> sur tous les forfaits. Aucun prélèvement avant la fin de cette période, et vous changez d'avis quand vous voulez.`;
+
+  document.getElementById('grille').innerHTML = cat.forfaits.map(f => `
+    <article class="carte-f ${f.populaire ? 'vedette' : ''}">
+      ${f.populaire ? '<span class="ruban-f">Le plus choisi</span>' : ''}
+      <h2>${ech(f.nom.fr)}</h2>
+      <p class="petit muet" style="margin-top:4px">${ech(f.resume.fr)}</p>
+      <div class="prix-f">${f.prixMois ? (+f.prixMois).toLocaleString('fr-HT') : 'Gratuit'}
+        ${f.prixMois ? '<small> HTG / mois</small>' : ''}</div>
+      <span class="commission-f">Commission ${Math.round(f.commission * 100)} %${f.plafondCommission ? ` — max ${f.plafondCommission} HTG` : ''}</span>
+      <ul>${f.avantages.fr.map(a => `<li>${ech(a)}</li>`).join('')}</ul>
+      <div class="pied-f">
+        <a class="btn ${f.populaire ? 'btn-primaire' : 'btn-contour'}" style="width:100%"
+           href="/inscription.html?forfait=${encodeURIComponent(f.cle)}">Choisir ce forfait →</a>
+      </div>
+    </article>`).join('');
+})();
+</script>
+</body>
+</html>

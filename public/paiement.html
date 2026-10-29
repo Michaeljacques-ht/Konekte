@@ -1,0 +1,279 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Paiement — Konekte</title>
+<link rel="icon" href="/favicon.ico" sizes="any">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<meta name="theme-color" content="#0B2C6B">
+<meta name="robots" content="noindex">
+<link rel="stylesheet" href="/style.css">
+<script src="/app.js"></script>
+<style>
+/* ============================================================
+   Page de règlement
+   ------------------------------------------------------------
+   La passerelle s'ouvre dans un cadre, à l'intérieur d'une carte
+   Konekte. Le client ne quitte donc jamais la plateforme : nous
+   savons quand il a payé, nous le lui disons, et nous le
+   ramenons à la boutique. Auparavant il était expédié sur le
+   site de la passerelle et y restait, règlement non confirmé.
+
+   Une passerelle peut refuser d'être affichée dans un cadre.
+   C'est prévu : un lien visible ouvre alors la page de paiement
+   dans un onglet, et cette page-ci continue d'interroger le
+   serveur jusqu'à confirmation.
+   ============================================================ */
+body { background: var(--fond); min-height: 100vh; }
+.boite-paie { width: 100%; max-width: 760px; margin: 0 auto; padding: 18px 14px 40px; }
+
+.entete-paie { display: flex; align-items: center; justify-content: space-between;
+  gap: 12px; flex-wrap: wrap; margin-bottom: 14px; }
+.entete-paie .logo { display: flex; align-items: center; gap: 9px;
+  font-weight: 800; color: var(--marine); font-size: 18px; text-decoration: none; }
+
+.recap-paie { display: flex; align-items: baseline; justify-content: space-between;
+  gap: 12px; flex-wrap: wrap; }
+.recap-paie .somme { font-size: 30px; font-weight: 800; color: var(--marine); }
+.recap-paie .somme span { font-size: 15px; font-weight: 700; color: var(--gris); }
+
+/* Un moyen de paiement proposé par l'entreprise. La passerelle était
+   auparavant intégrée dans un cadre au milieu de cette carte : les
+   portefeuilles haïtiens refusent de s'y terminer, et le client restait
+   devant une roue qui tournait. On annonce donc chaque moyen, et on
+   l'ouvre franchement dans son onglet. */
+.titre-moyens { font-size: 14px; font-weight: 800; color: var(--marine); margin-top: 18px; }
+.moyen { border: 1px solid var(--bordure); border-radius: 14px; padding: 14px 16px; margin-top: 10px; }
+.moyen strong { font-size: 15px; color: var(--marine); }
+.moyen p { font-size: 13.5px; line-height: 1.55; color: var(--gris); margin: 8px 0 12px; }
+/* Étiquette et valeur ne doivent pas se toucher sur un écran étroit. */
+.moyen .recap div { gap: 14px; }
+.moyen .recap div > span:first-child { flex: none; }
+
+.attente { display: flex; align-items: center; gap: 10px; font-size: 13.5px;
+  color: var(--gris); margin-top: 12px; }
+.rond-attente { width: 15px; height: 15px; border-radius: 50%; flex: none;
+  border: 2.5px solid var(--bordure); border-top-color: var(--bleu);
+  animation: tourner .9s linear infinite; }
+@keyframes tourner { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .rond-attente { animation: none; } }
+
+.secours { background: var(--bleu-clair); border-radius: 12px; padding: 13px 15px; margin-top: 12px; }
+.secours p { font-size: 13.5px; color: var(--marine); margin: 0 0 9px; line-height: 1.55; }
+
+.reussi { text-align: center; padding: 26px 20px; }
+.reussi .coche { width: 68px; height: 68px; border-radius: 50%; margin: 0 auto 14px;
+  background: var(--vert-fond); color: #07684A; font-size: 34px; display: grid; place-items: center; }
+.reussi h1 { font-size: 23px; color: var(--marine); }
+.reussi p { font-size: 14.5px; color: var(--texte); margin-top: 8px; line-height: 1.6; }
+.boutons-fin { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; margin-top: 20px; }
+.boutons-fin .btn { flex: 1 1 auto; min-width: 180px; }
+
+.ref-paie { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 12.5px;
+  color: var(--gris); margin-top: 14px; text-align: center; }
+</style>
+</head>
+<body>
+
+<div class="boite-paie">
+  <div class="entete-paie">
+    <a class="logo" href="/"><img src="/logo-marque.png" alt="" style="height:30px;width:auto">Konekte</a>
+    <a class="btn btn-fantome btn-petit" id="lienRetour" href="/">← Retour</a>
+  </div>
+
+  <div class="carte" id="carte"><div class="carte-corps" id="contenu">
+    <p class="muet">Chargement…</p>
+  </div></div>
+
+  <p class="ref-paie" id="refPaie"></p>
+</div>
+
+<script>
+const params = new URLSearchParams(location.search);
+const idPaiement = (params.get('p') || '').slice(0, 40);
+/* Deux sortes de règlements passent par cette page : celui d'un client
+   (identifiant « p ») et celui de l'abonnement d'une entreprise (« ab »),
+   qui se vérifie sur son propre point d'entrée et ramène au tableau de bord. */
+const estAbonnement = params.get('ab') === '1';
+const contenu = document.getElementById('contenu');
+let etat = null, minuteur = null, essais = 0;
+
+
+
+const somme = (n) => (+n || 0).toLocaleString('fr-HT') + ' HTG';
+const NOMS_TYPE = { commande: 'votre commande', sejour: 'votre séjour',
+                    rdv: 'votre rendez-vous', abonnement: 'votre abonnement' };
+
+function lienBoutique() {
+  return etat && etat.entreprise ? '/' + encodeURIComponent(etat.entreprise.slug) : '/';
+}
+
+function afficherErreur(message) {
+  clearInterval(minuteur);
+  contenu.innerHTML = `
+    <h1 style="font-size:19px;color:var(--marine)">Règlement introuvable</h1>
+    <p class="petit muet" style="margin-top:8px">${ech(message)}</p>
+    <a class="btn btn-contour mt" href="/">Retour à l'accueil</a>`;
+}
+
+function afficherReussite() {
+  clearInterval(minuteur);
+  document.title = 'Paiement confirmé — Konekte';
+  const quoi = NOMS_TYPE[etat.commandeType] || 'votre commande';
+  contenu.innerHTML = `
+    <div class="reussi">
+      <div class="coche">✓</div>
+      <h1>Paiement confirmé</h1>
+      <p>Merci. ${somme(etat.montant)} ${etat.entreprise ? 'ont bien été réglés à <strong>' + ech(etat.entreprise.nom) + '</strong>' : 'ont bien été réglés'}.
+         ${ech(quoi.charAt(0).toUpperCase() + quoi.slice(1))} est confirmé${etat.commandeType === 'commande' ? 'e' : ''}
+         et l'entreprise vient d'en être prévenue.</p>
+      <div class="boutons-fin">
+        ${estAbonnement
+          ? `<a class="btn btn-primaire" href="/dashboard.html">Retour à mon espace</a>`
+          : (etat.entreprise ? `<a class="btn btn-primaire" href="${lienBoutique()}">Retour à ${ech(etat.entreprise.nom)}</a>` : '')}
+        ${estAbonnement ? '' : '<a class="btn btn-contour" href="/mes-achats.html">Suivre mes achats</a>'}
+      </div>
+    </div>`;
+}
+
+function afficherPaiement() {
+  const nom = etat.entreprise ? etat.entreprise.nom : 'cette entreprise';
+  const quoi = NOMS_TYPE[etat.commandeType] || 'votre commande';
+  document.getElementById('lienRetour').href = lienBoutique();
+  document.getElementById('lienRetour').textContent = '← ' + (etat.entreprise ? 'Retour à ' + nom : 'Retour');
+  contenu.innerHTML = `
+    <div class="recap-paie">
+      <div>
+        <strong style="font-size:16px;color:var(--marine)">Régler ${ech(quoi)}</strong>
+        <div class="petit muet" style="margin-top:3px">chez ${ech(nom)}</div>
+      </div>
+      <div class="somme">${somme(etat.montant)}</div>
+    </div>
+
+    <p class="titre-moyens">Comment voulez-vous payer ?</p>
+
+    ${etat.urlPaiement ? `<div class="moyen">
+      <strong>💳 ${ech(etat.passerelleNom)}</strong>
+      <p>${etat.manuel
+        ? 'Payez sur cette page, puis revenez : prévenez le commerçant, qui confirmera après avoir vu l\'argent sur son compte.'
+        : 'Vous réglez sur la page sécurisée de la passerelle, puis vous revenez ici. Ce règlement est détecté tout seul.'}
+        ${etat.consigne ? '<br>' + ech(etat.consigne) : ''}</p>
+      <a class="btn btn-primaire" style="width:100%" target="_blank" rel="noopener"
+         href="${ech(etat.urlPaiement)}" onclick="ouvertEnOnglet()">Ouvrir la page de paiement ↗</a>
+    </div>` : ''}
+
+    ${(etat.comptes || []).map((c) => `<div class="moyen">
+      <strong>${ech(c.ico || '🏦')} ${ech(c.libelle)}</strong>
+      <div class="recap" style="margin-top:8px">
+        <div><span>${ech(c.type === 'banque' ? 'Compte' : 'Numéro')}</span><strong>${ech(c.numero)}</strong></div>
+        ${c.titulaire ? `<div><span>Au nom de</span><span>${ech(c.titulaire)}</span></div>` : ''}
+        ${c.banque ? `<div><span>Banque</span><span>${ech(c.banque)}</span></div>` : ''}
+      </div>
+      <p>${c.instructions ? ech(c.instructions) + ' ' : ''}Envoyez ${somme(etat.montant)} sur ce compte, puis prévenez le commerçant avec votre référence.</p>
+    </div>`).join('')}
+
+    ${(!etat.urlPaiement && !(etat.comptes || []).length) ? `<div class="moyen">
+      <strong>Aucun moyen de paiement en ligne</strong>
+      <p>Cette entreprise n'a pas encore mis de moyen de règlement en place. Contactez-la directement : votre commande est bien enregistrée.</p>
+    </div>` : ''}
+
+    <div class="flex mt" style="gap:8px;flex-wrap:wrap">
+      <button class="btn btn-contour btn-petit" id="btnVerifier" onclick="verifierMaintenant()">J'ai payé — vérifier</button>
+      <a class="btn btn-fantome btn-petit" href="${lienBoutique()}">Revenir à la boutique</a>
+    </div>
+
+    ${etat.manuel ? '' : `<div class="attente"><span class="rond-attente" aria-hidden="true"></span>
+      <span id="texteAttente">En attente de la confirmation du paiement…</span></div>`}`;
+  document.getElementById('refPaie').textContent = 'Référence : ' + etat.reference;
+}
+
+async function verifier(silencieux) {
+  try {
+    const r = estAbonnement
+      ? await fetch('/api/mon-entreprise/abonnement/verifier', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' })
+      : await fetch('/api/paiements/verifier', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ paiementId: idPaiement })
+        });
+    const d = await r.json().catch(() => ({}));
+    if (r.ok && (d.statut === 'confirme' || (estAbonnement && d.ok))) {
+      etat.statut = 'confirme'; afficherReussite(); return true;
+    }
+    if (!silencieux) toast(d.erreur || 'Le paiement n\'est pas encore confirmé. Patientez quelques secondes.');
+  } catch {
+    if (!silencieux) toast('Vérification impossible pour le moment.');
+  }
+  return false;
+}
+
+/* Le client part régler dans un onglet : à son retour sur cette page, on
+   vérifie immédiatement au lieu d'attendre le prochain tour de boucle. */
+let partiEnOnglet = false;
+function ouvertEnOnglet() { partiEnOnglet = true; }
+
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden && etat && etat.statut !== 'confirme') verifier(true);
+});
+
+async function verifierMaintenant() {
+  const b = document.getElementById('btnVerifier');
+  if (b) { b.disabled = true; b.textContent = 'Vérification…'; }
+  const ok = await verifier(false);
+  if (!ok && b) { b.disabled = false; b.textContent = 'J\'ai payé — vérifier'; }
+}
+
+/* Interrogation régulière pendant que le client règle. L'intervalle
+   s'allonge avec le temps : utile et vif les premières minutes, discret
+   ensuite si la page reste ouverte toute la journée. */
+function surveiller() {
+  minuteur = setInterval(async () => {
+    essais++;
+    if (document.hidden) return;                     // onglet en arrière-plan : on attend
+    if (essais > 240) { clearInterval(minuteur); return; }   // ~20 min, puis on s'arrête
+    const t = document.getElementById('texteAttente');
+    if (t && essais > 20) t.textContent = 'Toujours en attente du paiement. Vous pouvez laisser cette page ouverte.';
+    await verifier(true);
+  }, 5000);
+}
+
+async function chargerAbonnement() {
+  const r = await fetch('/api/mon-entreprise/abonnement');
+  if (!r.ok) throw new Error('session');
+  const a = await r.json();
+  const enCours = a.paiementEnCours;
+  if (!enCours) throw new Error('aucun');
+  return { id: '', reference: enCours.reference, statut: 'en_attente',
+           montant: enCours.montant, commandeType: 'abonnement',
+           urlPaiement: enCours.url || '', entreprise: null };
+}
+
+(async () => {
+  if (!idPaiement && !estAbonnement) return afficherErreur('Aucun règlement n\'est indiqué dans l\'adresse.');
+  try {
+    if (estAbonnement) {
+      etat = await chargerAbonnement();
+    } else {
+      const r = await fetch('/api/paiements/etat?p=' + encodeURIComponent(idPaiement));
+      if (!r.ok) throw new Error('introuvable');
+      etat = await r.json();
+    }
+  } catch (e) {
+    return afficherErreur(e.message === 'session'
+      ? 'Connectez-vous à votre espace pour régler votre abonnement.'
+      : e.message === 'aucun' ? 'Aucun règlement d\'abonnement n\'est en attente.'
+      : 'Ce règlement n\'existe pas ou a expiré.');
+  }
+  if (etat.entreprise && etat.entreprise.couleur)
+    document.documentElement.style.setProperty('--marque', etat.entreprise.couleur);
+  if (etat.statut === 'confirme') return afficherReussite();
+  if (!etat.urlPaiement) return afficherErreur('La page de paiement n\'est plus disponible. Relancez le règlement depuis la boutique.');
+  afficherPaiement();
+  /* Inutile d'interroger une passerelle qui ne répond pas : un règlement
+     vérifié à la main ne se confirmera que par le commerçant. */
+  if (!etat.manuel) surveiller();
+})();
+</script>
+</body>
+</html>

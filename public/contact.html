@@ -1,0 +1,180 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Contact — Konekte</title>
+<link rel="icon" href="/favicon.ico" sizes="any">
+<link rel="icon" type="image/png" sizes="192x192" href="/icone-192.png">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<meta name="theme-color" content="#0B2C6B">
+<meta name="description" content="Contactez l'équipe Konekte : WhatsApp, téléphone, email ou formulaire. Nous répondons sous 24 heures ouvrables.">
+<link rel="stylesheet" href="/style.css">
+<style>
+.entete-p { background:#fff; border:1px solid var(--bordure); border-radius:22px; padding:32px 30px;
+  box-shadow:var(--ombre); position:relative; overflow:hidden; margin:24px 0 26px; }
+.entete-p::before { content:''; position:absolute; top:0; left:0; right:0; height:5px; background:var(--degrade-accent); }
+.entete-p h1 { font-size:clamp(24px,3vw,34px); letter-spacing:-.025em; }
+.entete-p .accent { color:var(--orange); }
+.deux-col { display:grid; grid-template-columns:1.15fr .85fr; gap:20px; align-items:start; }
+@media (max-width:860px){ .deux-col { grid-template-columns:1fr; } }
+.moyen { display:flex; gap:13px; align-items:flex-start; padding:15px 0; border-bottom:1px solid var(--bordure); }
+.moyen:last-child { border-bottom:0; }
+.moyen .ico { width:44px; height:44px; border-radius:12px; display:grid; place-items:center;
+  font-size:20px; background:var(--bleu-clair); flex:none; }
+.moyen strong { display:block; font-size:14.5px; color:var(--marine); }
+.moyen a { font-size:14px; }
+.moyen .petit { color:var(--gris); }
+.faq details { border:1px solid var(--bordure); border-radius:var(--r-champ); padding:13px 16px; margin-bottom:9px; background:#fff; }
+.faq summary { cursor:pointer; font-weight:700; font-size:14px; color:var(--marine); }
+.faq p { font-size:13.5px; color:var(--texte); margin-top:8px; line-height:1.6; }
+.deux { display:grid; grid-template-columns:1fr 1fr; gap:0 14px; }
+@media (max-width:560px){ .deux { grid-template-columns:1fr; } }
+</style>
+<script src="/app.js"></script>
+<script src="/translations.js"></script>
+</head>
+<body>
+
+<nav class="nav">
+  <div class="conteneur nav-int">
+    <button class="burger" aria-label="Menu" aria-expanded="false" onclick="basculerMenu(this)">☰</button>
+    <a class="logo" href="/"><img src="/logo-marque.png" alt="" style="height:34px;width:auto">Konekte</a>
+    <div class="nav-liens">
+      <a href="/" data-i18n="acc.nav.accueil">Accueil</a>
+      <a href="/boutique.html" data-i18n="bq.nav">Boutique</a>
+      <a href="/mes-achats.html" data-i18n="nav.achats">Mes achats</a>
+      <a href="/categories.html" data-i18n="acc.nav.categories">Catégories</a>
+      <a href="/tutoriel.html" data-i18n="nav.tutoriel">Tutoriel</a>
+      <a href="/apropos.html" data-i18n="acc.nav.apropos">À propos</a>
+      <a href="/forfaits.html" data-i18n="nav.forfaits">Forfaits</a>
+      <a href="/contact.html" class="actif" data-i18n="nav.contact">Contact</a>
+      <a class="btn btn-contour lien-mobile" href="/connexion.html" data-i18n="acc.nav.connexion">Se connecter</a>
+      <a class="btn btn-primaire lien-mobile" href="/inscription.html" data-i18n="acc.nav.inscrire">Inscrire mon entreprise</a>
+    </div>
+    <div class="nav-droite">
+      <button class="btn btn-fantome" id="btnLangue" style="font-size:14px" onclick="basculerLangue()">🌐 FR/HT</button>
+      <a class="btn btn-contour" href="/connexion.html" data-i18n="acc.nav.connexion">Se connecter</a>
+      <a class="btn btn-primaire" href="/inscription.html" data-i18n="acc.nav.inscrire">Inscrire mon entreprise</a>
+    </div>
+  </div>
+</nav>
+
+<main class="conteneur">
+  <section class="entete-p">
+    <span class="eyebrow" data-i18n="ct.eyebrow">Nous joindre</span>
+    <h1><span data-i18n="ct.titre1">Une question ? </span><span class="accent" data-i18n="ct.titre2">Nous sommes là.</span></h1>
+    <p class="muet" style="margin-top:9px;max-width:60ch" data-i18n="ct.intro">Écrivez-nous par le formulaire, ou joignez-nous directement sur WhatsApp. Nous répondons sous 24 heures ouvrables.</p>
+  </section>
+
+  <div class="deux-col">
+    <div class="carte"><div class="carte-corps" style="padding:26px">
+      <h2 style="font-size:17px" data-i18n="ct.form.titre">Écrivez-nous</h2>
+      <p class="petit muet" style="margin-top:4px" data-i18n="ct.form.sous">Tous les messages arrivent directement à notre équipe.</p>
+
+      <label data-i18n="ct.sujet">Objet de votre message</label>
+      <select id="fSujet">
+        <option value="question" data-i18n="ct.s1">Une question sur la plateforme</option>
+        <option value="probleme" data-i18n="ct.s2">Un problème technique</option>
+        <option value="reservation" data-i18n="ct.s3">Une réservation ou une commande</option>
+        <option value="facturation" data-i18n="ct.s4">Facturation ou abonnement</option>
+        <option value="autre" data-i18n="ct.s5">Autre sujet</option>
+      </select>
+
+      <div class="deux">
+        <div><label data-i18n="ct.nom">Votre nom *</label><input id="fNom" placeholder="Ex : Marie Dorval"></div>
+        <div><label data-i18n="ct.ent">Entreprise — facultatif</label><input id="fEnt"></div>
+      </div>
+      <div class="deux">
+        <div><label data-i18n="ct.email">Email</label><input id="fEmail" type="email" placeholder="vous@exemple.ht"></div>
+        <div><label data-i18n="ct.tel">Téléphone WhatsApp</label><input id="fTel" placeholder="509 …"></div>
+      </div>
+      <p class="aide" data-i18n="ct.aide">Laissez au moins l'un des deux pour que nous puissions vous répondre.</p>
+
+      <label data-i18n="ct.message">Votre message *</label>
+      <textarea id="fMessage" rows="6" placeholder="Décrivez votre demande…"></textarea>
+      <p class="champ-erreur" id="errContact"></p>
+      <button class="btn btn-primaire" style="width:100%" onclick="envoyerContact()" data-i18n="ct.envoyer">Envoyer le message</button>
+    </div></div>
+
+    <div>
+      <div class="carte"><div class="carte-corps">
+        <h2 style="font-size:16px" data-i18n="ct.moyens">Autres moyens</h2>
+        <div class="moyen">
+          <div class="ico" style="background:var(--vert-fond)">💬</div>
+          <div><strong data-i18n="ct.wa">WhatsApp</strong>
+            <a href="https://wa.me/15142261860" target="_blank" rel="noopener">+1 514 226 1860</a>
+            <p class="petit" data-i18n="ct.wa.d">Le plus rapide — réponse en journée.</p></div>
+        </div>
+        <div class="moyen">
+          <div class="ico">📞</div>
+          <div><strong data-i18n="ct.tel2">Téléphone</strong>
+            <a href="tel:+15142261860">+1 514 226 1860</a>
+            <p class="petit" data-i18n="ct.tel.d">Du lundi au vendredi, 8 h à 17 h.</p></div>
+        </div>
+        <div class="moyen">
+          <div class="ico" style="background:var(--orange-fond)">✉️</div>
+          <div><strong data-i18n="ct.mail">Email</strong>
+            <a href="mailto:contact@bizniskonekte.tech">contact@bizniskonekte.tech</a>
+            <p class="petit" data-i18n="ct.mail.d">Pour les demandes détaillées ou les pièces jointes.</p></div>
+        </div>
+      </div></div>
+
+      <div class="carte mt"><div class="carte-corps">
+        <h2 style="font-size:16px" data-i18n="ct.rapide">Réponses rapides</h2>
+        <div class="faq mt">
+          <details><summary data-i18n="ct.q1">Comment inscrire mon entreprise ?</summary>
+            <p data-i18n="ct.r1">L'inscription se fait en cinq étapes depuis la page dédiée, et prend quelques minutes. Les six premiers mois sont gratuits.</p></details>
+          <details><summary data-i18n="ct.q2">Combien coûte la plateforme ?</summary>
+            <p data-i18n="ct.r2">Trois forfaits de 1 000 à 2 500 HTG par mois. Tous démarrent par 30 jours offerts, et une commission s'applique sur les encaissements en ligne.</p></details>
+          <details><summary data-i18n="ct.q3">Comment suivre ma commande ?</summary>
+            <p data-i18n="ct.r3">Rendez-vous sur la page du commerçant, section suivi, avec votre référence et votre téléphone.</p></details>
+        </div>
+        <a class="btn btn-contour btn-petit mt" style="width:100%" href="/question.html" data-i18n="ct.plus">Poser une question →</a>
+      </div></div>
+    </div>
+  </div>
+</main>
+
+<footer class="pied-riche" style="margin-top:56px">
+  <div class="conteneur">
+    <div class="pied-bas">
+      <p class="petit">© 2026 <strong>KONEKTE</strong> — <span data-i18n="pied.droits">Tous droits réservés.</span></p>
+      <p class="petit"><a href="/mes-achats.html">Mes achats</a> · <a href="/recu.html">Mon reçu</a> · <a href="/confidentialite.html">Confidentialité</a></p>
+      <p class="petit" data-i18n="pied.concu">Conçu en Haïti 💙 pour les entreprises haïtiennes.</p>
+    </div>
+  </div>
+</footer>
+
+<div id="toast"></div>
+<script>
+async function envoyerContact(){
+  const err = document.getElementById('errContact');
+  const nom = document.getElementById('fNom').value.trim();
+  const msg = document.getElementById('fMessage').value.trim();
+  const email = document.getElementById('fEmail').value.trim();
+  const tel = document.getElementById('fTel').value.trim();
+  const lg = localStorage.getItem('langue') || 'fr';
+  if (!nom || !msg) { err.textContent = lg==='ht' ? 'Non ou ak mesaj ou obligatwa.' : 'Votre nom et votre message sont obligatoires.'; return; }
+  if (!email && !tel) { err.textContent = lg==='ht' ? 'Kite yon imèl oswa yon telefòn.' : 'Laissez un email ou un téléphone pour la réponse.'; return; }
+  err.textContent = '';
+  try {
+    const r = await api('/api/messages','POST',{
+      type:'contact', nom, email, telephone: tel,
+      entreprise: document.getElementById('fEnt').value.trim(),
+      sujet: document.getElementById('fSujet').value,
+      message: msg
+    });
+    document.querySelector('.deux-col .carte-corps').innerHTML = `
+      <div class="centre" style="padding:26px 0">
+        <div style="width:56px;height:56px;border-radius:50%;background:var(--vert);color:#fff;display:grid;place-items:center;font-size:26px;margin:0 auto 14px">✓</div>
+        <h2 style="font-size:19px">${lg==='ht'?'Mesaj resevwa !':'Message reçu !'}</h2>
+        <p class="petit muet" style="margin-top:8px">${lg==='ht'?'Referans':'Référence'} <strong>${r.reference}</strong></p>
+        <p class="petit muet" style="margin-top:6px">${lg==='ht'?'Nou ap reponn ou nan mwens pase 24 è ouvrab.':'Nous vous répondons sous 24 heures ouvrables.'}</p>
+        <a class="btn btn-succes mt" target="_blank" rel="noopener" href="https://wa.me/15142261860">💬 ${lg==='ht'?'Pale ak nou sou WhatsApp':'Nous écrire sur WhatsApp'}</a>
+      </div>`;
+  } catch(e){ err.textContent = e.message; }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,62 @@
+{
+  "id": "/",
+  "name": "Konekte — Rendez-vous et vente en ligne",
+  "short_name": "Konekte",
+  "description": "Konekte kliyan ak biznis yo. Prenez rendez-vous, réservez une chambre et achetez auprès des commerçants haïtiens.",
+  "lang": "fr",
+  "dir": "ltr",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#FFFFFF",
+  "theme_color": "#0B2C6B",
+  "categories": [
+    "business",
+    "productivity",
+    "lifestyle"
+  ],
+  "icons": [
+    {
+      "src": "/favicon.ico",
+      "sizes": "48x48",
+      "type": "image/x-icon"
+    },
+    {
+      "src": "/icone-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icone-192-maskable.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/icone-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icone-512-maskable.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Annuaire des entreprises",
+      "url": "/#annuaire",
+      "description": "Trouver une entreprise et réserver"
+    },
+    {
+      "name": "Mon tableau de bord",
+      "url": "/dashboard.html",
+      "description": "Gérer mes rendez-vous (responsables)"
+    }
+  ]
+}

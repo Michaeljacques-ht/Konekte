@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Administration — Konekte</title>
+<link rel="icon" href="/favicon.ico" sizes="any">
+<link rel="icon" type="image/png" sizes="192x192" href="/icone-192.png">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<meta name="theme-color" content="#0B2C6B">
+<link rel="stylesheet" href="/style.css">
+<style>
+body { background: var(--gris-clair); }
+.entete { background: var(--marine); color: #fff; padding: 16px 0; }
+.principal { max-width: 1060px; margin: 24px auto; padding: 0 20px; }
+.cartes-stats { display: grid; grid-template-columns: repeat(5, 1fr); gap: 14px; }
+.stat { background: #fff; border: 1px solid var(--bordure); border-radius: 14px; padding: 16px 18px; }
+.stat .valeur { font-size: 26px; font-weight: 800; }
+@media (max-width: 800px){ .cartes-stats { grid-template-columns: 1fr 1fr; } }
+.courbe { display: flex; align-items: flex-end; gap: 2px; height: 110px;
+  background: var(--gris-clair); border-radius: 10px; padding: 8px; }
+.courbe .col { flex: 1; display: flex; align-items: flex-end; height: 100%; }
+.courbe .barre { width: 100%; background: var(--degrade); border-radius: 3px 3px 0 0; min-height: 2px; }
+.courbe .col:hover .barre { background: var(--orange); }
+</style>
+</head>
+<body>
+<header class="entete">
+  <div class="conteneur flex entre">
+    <a class="logo" style="color:#fff" href="/"><img src="/logo-marque.png" alt="" style="height:32px;width:auto;background:#fff;border-radius:8px;padding:2px">Konekte <span class="badge badge-bleu" style="margin-left:6px">Admin</span></a>
+    <button class="btn btn-contour btn-petit" onclick="deconnexion()">Se déconnecter</button>
+  </div>
+</header>
+
+<main class="principal">
+  <h1 style="font-size:20px" class="mb">Administration de la plateforme</h1>
+  <div class="cartes-stats" id="stats"></div>
+
+  <div class="carte mt"><div class="carte-corps">
+    <div class="flex entre" style="flex-wrap:wrap;gap:10px">
+      <h2 style="font-size:16px">Entreprises inscrites</h2>
+      <select id="filtre" style="width:auto" onchange="dessiner()">
+        <option value="">Toutes</option>
+        <option value="en_attente">En attente de validation</option>
+        <option value="approuvee">Approuvées</option>
+        <option value="suspendue">Suspendues</option>
+      </select>
+    </div>
+    <div style="overflow:auto" class="mt"><table id="tableEnt"></table></div>
+  </div></div>
+
+  <div class="carte mt"><div class="carte-corps">
+    <div class="flex entre">
+      <h2 style="font-size:16px">📊 Fréquentation</h2>
+      <select id="periodeFreq" style="width:auto" onchange="chargerFrequentation()">
+        <option value="7">7 derniers jours</option>
+        <option value="30" selected>30 derniers jours</option>
+        <option value="90">3 derniers mois</option>
+        <option value="365">12 derniers mois</option>
+      </select>
+    </div>
+    <div id="freqChiffres" class="cartes-stats mt"></div>
+    <div id="freqCourbe" class="mt"></div>
+    <div class="grille mt" style="grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px" id="freqDetails"></div>
+    <p class="aide mt">Les visiteurs ne sont pas identifiés : aucune adresse IP n'est conservée, et l'empreinte anonyme change chaque jour. La région est déduite du fuseau horaire du navigateur.</p>
+  </div></div>
+
+  <div class="carte mt"><div class="carte-corps">
+    <h2 style="font-size:16px">💾 Sauvegarde des données</h2>
+    <p class="petit muet" style="margin-top:6px" id="infoStockage"></p>
+    <div class="flex mt" style="gap:8px;flex-wrap:wrap">
+      <a class="btn btn-primaire btn-petit" href="/api/admin/sauvegarde">⬇ Télécharger une sauvegarde</a>
+      <label class="btn btn-contour btn-petit" style="cursor:pointer;margin:0">
+        ⬆ Restaurer un fichier
+        <input type="file" id="fichierRestaure" accept="application/json,.json" style="display:none" onchange="restaurer(this)">
+      </label>
+    </div>
+    <p class="aide mt">Téléchargez une sauvegarde <strong>avant chaque déploiement</strong> tant que le disque persistant n'est pas configuré. La restauration remplace toutes les données existantes.</p>
+    <p class="champ-erreur" id="errRestaure"></p>
+  </div></div>
+
+  <div class="carte mt"><div class="carte-corps">
+    <div class="flex entre">
+      <h2 style="font-size:16px">📨 Messages reçus</h2>
+      <select id="filtreMsg" style="width:auto" onchange="chargerMessages()">
+        <option value="">Tous</option>
+        <option value="nouveau">Nouveaux</option>
+        <option value="contact">Contact</option>
+        <option value="partenaire">Partenariat</option>
+        <option value="question">Questions</option>
+      </select>
+    </div>
+    <div id="listeMessages" class="mt"></div>
+  </div></div>
+</main>
+
+<!-- Dossier d'inscription -->
+<div class="voile" id="voileDossier">
+  <div class="modale" style="max-width:640px">
+    <div id="corpsDossier"></div>
+    <div class="flex" style="gap:8px;justify-content:flex-end;margin-top:22px">
+      <button class="btn btn-fantome" onclick="fermerDossier()">Fermer</button>
+    </div>
+  </div>
+</div>
+
+<!-- Suppression définitive -->
+<div class="voile" id="voileSuppression">
+  <div class="modale">
+    <h2 style="font-size:19px;color:var(--rouge)">Supprimer définitivement</h2>
+    <p class="mt">Vous êtes sur le point de supprimer <strong id="nomASupprimer"></strong>.</p>
+    <p class="petit muet mt" id="resumeSuppression"></p>
+    <p class="petit mt"><strong>Cette action est irréversible.</strong> Les données ne sont pas
+    récupérables depuis la plateforme — seule une sauvegarde téléchargée avant la suppression
+    permettrait de les retrouver.</p>
+    <label class="mt">Recopiez le nom de l'entreprise pour confirmer</label>
+    <input id="champConfirmation" placeholder="Nom exact de l'entreprise" autocomplete="off">
+    <p class="champ-erreur" id="errSuppression"></p>
+    <div class="flex" style="gap:8px;justify-content:flex-end;margin-top:16px">
+      <button class="btn btn-fantome" onclick="fermerSuppression()">Annuler</button>
+      <button class="btn btn-danger" id="btnSupprimer" onclick="confirmerSuppression()">Supprimer définitivement</button>
+    </div>
+  </div>
+</div>
+
+<script src="/app.js"></script>
+<script>
+// ===== Messages reçus =====
+const LIB_TYPE = { contact:'Contact', partenaire:'Partenariat', question:'Question' };
+async function chargerMessages(){
+  let liste = [];
+  try { liste = await api('/api/admin/messages'); } catch(e){ return; }
+  const f = document.getElementById('filtreMsg').value;
+  if (f === 'nouveau') liste = liste.filter(m => m.statut === 'nouveau');
+  else if (f) liste = liste.filter(m => m.type === f);
+  const z = document.getElementById('listeMessages');
+  if (!liste.length) { z.innerHTML = '<p class="muet petit">Aucun message.</p>'; return; }
+  z.innerHTML = liste.map(m => `
+    <div class="panneau" style="${m.statut==='nouveau'?'border-color:var(--orange)':''}">
+      <div class="flex entre" style="gap:10px;flex-wrap:wrap;align-items:flex-start">
+        <div style="flex:1;min-width:220px">
+          <strong>${ech(m.nom)}</strong>
+          <span class="badge badge-bleu" style="margin-left:6px">${LIB_TYPE[m.type]||m.type}</span>
+          ${m.statut==='nouveau'?'<span class="badge badge-orange" style="margin-left:4px">Nouveau</span>':''}
+          <p class="petit muet" style="margin-top:4px">
+            ${m.entreprise?ech(m.entreprise)+' · ':''}${m.sujet?ech(m.sujet):''}
+            ${m.activite?' · '+ech(m.activite):''}${m.ville?' · '+ech(m.ville):''}</p>
+          <p class="petit muet">
+            ${m.email?`<a href="mailto:${ech(m.email)}">${ech(m.email)}</a>`:''}
+            ${m.telephone?` · <a target="_blank" rel="noopener" href="https://wa.me/${String(m.telephone).replace(/\D/g,'')}">${ech(m.telephone)}</a>`:''}</p>
+          <p class="petit" style="margin-top:8px;white-space:pre-wrap">${ech(m.message)}</p>
+        </div>
+        <div style="text-align:right">
+          <p class="petit muet">${m.reference}<br>${m.creeLe.slice(0,10)}</p>
+          <div class="flex" style="gap:6px;margin-top:8px;flex-wrap:wrap;justify-content:flex-end">
+            ${m.statut!=='traite'?`<button class="btn btn-succes btn-petit" onclick="statutMsg('${m.id}','traite')">Traité</button>`:''}
+            <button class="btn btn-fantome btn-petit" onclick="supprimerMsg('${m.id}')">🗑️</button>
+          </div>
+        </div>
+      </div>
+    </div>`).join('');
+}
+async function statutMsg(id, statut){
+  await api('/api/admin/messages/'+id,'PUT',{statut}); chargerMessages();
+}
+
+// ===== Fréquentation =====
+async function chargerFrequentation(){
+  const jours = document.getElementById('periodeFreq').value;
+  let s;
+  try { s = await api('/api/admin/frequentation?jours=' + jours); } catch(e){ return; }
+
+  document.getElementById('freqChiffres').innerHTML = `
+    <div class="stat"><span class="petit muet">Visites</span><div class="valeur">${s.total}</div></div>
+    <div class="stat"><span class="petit muet">Visiteurs uniques</span><div class="valeur">${s.visiteurs}</div></div>
+    <div class="stat"><span class="petit muet">Depuis l'écran d'accueil</span><div class="valeur">${s.installees}</div></div>
+    <div class="stat"><span class="petit muet">Moyenne par jour</span><div class="valeur">${Math.round(s.total / s.periode)}</div></div>
+    ${s.fidelite && s.fidelite.mesurables ? `
+      <div class="stat"><span class="petit muet">Visiteurs qui reviennent</span><div class="valeur">${s.fidelite.habitues}</div>
+        <span class="petit muet">sur ${s.fidelite.mesurables} mesurables</span></div>` : ''}`;
+
+  // Courbe simple en barres, sans bibliothèque
+  const max = Math.max(1, ...s.parJour.map(j => j.visites));
+  const derniers = s.parJour.slice(-30);
+  document.getElementById('freqCourbe').innerHTML = `
+    <div class="courbe">${derniers.map(j => `
+      <div class="col" title="${j.jour} — ${j.visites} visite(s), ${j.visiteurs} visiteur(s)">
+        <div class="barre" style="height:${Math.round(j.visites / max * 100)}%"></div>
+      </div>`).join('')}</div>
+    <div class="flex entre petit muet" style="margin-top:4px">
+      <span>${derniers.length ? derniers[0].jour : ''}</span>
+      <span>${derniers.length ? derniers[derniers.length-1].jour : ''}</span>
+    </div>`;
+
+  const liste = (titre, donnees, unite) => `
+    <div class="panneau">
+      <strong class="petit">${titre}</strong>
+      ${donnees.length ? donnees.map(([k, n]) => `
+        <div class="flex entre" style="padding:5px 0;border-bottom:1px solid var(--bordure)">
+          <span class="petit">${ech(k)}</span><strong class="petit">${n}${unite||''}</strong>
+        </div>`).join('') : '<p class="petit muet" style="margin-top:6px">Aucune donnée</p>'}
+    </div>`;
+
+  const heurePointe = s.parHeure.indexOf(Math.max(...s.parHeure));
+  document.getElementById('freqDetails').innerHTML =
+    liste('🌍 Régions', s.regions) +
+    liste('🔗 Provenance', s.sources) +
+    liste('📱 Appareils', s.appareils) +
+    liste('🗣 Langues', s.langues) +
+    liste('📄 Pages les plus vues', s.pages) +
+    liste('🏢 Entreprises les plus consultées', s.entreprises) +
+    `<div class="panneau"><strong class="petit">🕐 Heure de pointe</strong>
+      <p style="font-size:22px;font-weight:800;color:var(--marine);margin-top:6px">${heurePointe}h — ${heurePointe+1}h</p>
+      <p class="petit muet">${s.parHeure[heurePointe]} visite(s) sur cette tranche</p></div>`;
+}
+chargerFrequentation();
+
+async function supprimerMsg(id){
+  if (!confirm('Supprimer ce message ?')) return;
+  await api('/api/admin/messages/'+id,'DELETE'); chargerMessages();
+}
+chargerMessages();
+
+// ===== Sauvegarde et restauration =====
+async function restaurer(input){
+  const f = input.files[0];
+  if (!f) return;
+  const err = document.getElementById('errRestaure');
+  err.textContent = '';
+  if (!confirm('Restaurer ce fichier ? Toutes les données actuelles seront remplacées.')) {
+    input.value = ''; return;
+  }
+  try {
+    const texte = await f.text();
+    const donnees = JSON.parse(texte);
+    const r = await api('/api/admin/restaurer','POST',{ donnees });
+    alert('Restauration terminée.\n\n'
+      + r.entreprises + ' entreprise(s)\n'
+      + r.utilisateurs + ' utilisateur(s)\n'
+      + r.rendezvous + ' rendez-vous\n'
+      + r.sejours + ' séjour(s)\n'
+      + r.commandes + ' commande(s)');
+    location.reload();
+  } catch(e){
+    err.textContent = e.message.includes('JSON') ? 'Fichier illisible : ce n\'est pas une sauvegarde valide.' : e.message;
+  }
+  input.value = '';
+}
+</script>
+<script>
+let entreprises = [];
+const BADGE_ENT = {
+  approuvee: '<span class="badge badge-vert">Approuvée</span>',
+  en_attente: '<span class="badge badge-orange">En attente</span>',
+  suspendue: '<span class="badge badge-rouge">Suspendue</span>'
+};
+
+async function deconnexion(){ await api('/api/deconnexion','POST'); location.href='/'; }
+
+async function charger(){
+  try {
+    const moi = await api('/api/moi');
+    if (moi.role !== 'admin') { location.href = '/dashboard.html'; return; }
+  } catch { location.href='/connexion.html'; return; }
+  const s = await api('/api/admin/stats');
+  document.getElementById('stats').innerHTML = `
+    <div class="stat"><span class="petit muet">Entreprises</span><div class="valeur">${s.entreprises}</div></div>
+    <div class="stat"><span class="petit muet">En attente</span><div class="valeur" style="color:var(--orange)">${s.enAttente}</div></div>
+    <div class="stat"><span class="petit muet">Rendez-vous</span><div class="valeur">${s.rendezvous}</div></div>
+    <div class="stat"><span class="petit muet">Avis</span><div class="valeur">${s.avis}</div></div>
+    <div class="stat"><span class="petit muet">Utilisateurs</span><div class="valeur">${s.utilisateurs}</div></div>`;
+  entreprises = await api('/api/admin/entreprises');
+  dessiner();
+}
+
+function dessiner(){
+  const f = document.getElementById('filtre').value;
+  const liste = entreprises.filter(e=>!f || e.statut===f);
+  document.getElementById('tableEnt').innerHTML =
+    '<tr><th>Entreprise</th><th>Catégorie</th><th>Contact</th><th>Activité</th><th>Plan</th><th>Statut</th><th>Actions</th></tr>' +
+    (liste.length ? liste.map(e=>`
+    <tr>
+      <td><strong>${ech(e.nom)}</strong><div class="petit muet"><a target="_blank" href="/${e.slug}">/${e.slug} ↗</a></div></td>
+      <td>${ICONES_CAT[e.categorie]||'✨'} ${ech(e.categorie)}</td>
+      <td class="petit">${ech(e.email)}${e.courrielVerifie === false ? ' <span class="badge badge-orange" title="Le responsable n&apos;a pas encore cliqué sur son lien d&apos;activation">courriel non vérifié</span>' : ''}<br>${ech(e.telephone)||'—'}</td>
+      <td class="petit">${e.totalRdv} rendez-vous<br><span class="etoiles">${etoiles(e.note)}</span> (${e.total})</td>
+      <td>
+        <select onchange="majEnt('${e.id}',{plan:this.value})" style="width:auto;padding:5px 8px;font-size:13px">
+          <option value="gratuit" ${e.plan==='gratuit'?'selected':''}>Gratuit</option>
+          <option value="premium" ${e.plan==='premium'?'selected':''}>Premium</option>
+        </select>
+      </td>
+      <td>${BADGE_ENT[e.statut]}</td>
+      <td><div class="flex" style="gap:6px;flex-wrap:wrap">
+        <button class="btn btn-fantome btn-petit" onclick="voirDossier('${e.id}')" title="Voir le dossier d'inscription">📋 Dossier</button>
+        ${e.statut!=='approuvee' ? `<button class="btn btn-succes btn-petit" onclick="majEnt('${e.id}',{statut:'approuvee'})">Approuver</button>` : ''}
+        ${e.statut==='approuvee' ? `<button class="btn btn-danger btn-petit" onclick="majEnt('${e.id}',{statut:'suspendue'})">Suspendre</button>` : ''}
+        ${boutonsVersement(e)}
+        <button class="btn btn-fantome btn-petit" style="color:var(--rouge)" onclick="supprimerEnt('${e.id}')" title="Supprimer définitivement">🗑️</button>
+      </div></td>
+    </tr>`).join('') : '<tr><td colspan="7" class="muet centre">Aucune entreprise pour ce filtre.</td></tr>');
+}
+
+/* ---- Entente de paiement par versement ----
+   L'entreprise déclare la référence de son entente avec Micro Crédit
+   Solidarité ; c'est ici qu'on constate qu'elle existe. Tant que personne
+   ne l'a constatée, le bouton « Payer par versement » reste invisible sur
+   la page publique, et c'est voulu : il engage l'organisme. */
+function boutonsVersement(e){
+  const v = e.versement || {};
+  if (!v.reference) return '';
+  if (!v.validee) return `<button class="btn btn-succes btn-petit"
+      onclick="validerEntente('${e.id}', true)"
+      title="Entente ${ech(v.reference)} déclarée par l'entreprise">💳 Valider l'entente (${ech(v.reference)})</button>
+    <button class="btn btn-fantome btn-petit" style="color:var(--rouge)"
+      onclick="validerEntente('${e.id}', false)">Refuser</button>`;
+  return `<button class="btn btn-fantome btn-petit"
+      onclick="validerEntente('${e.id}', false)"
+      title="Entente ${ech(v.reference)} validée${v.actif ? ' et active' : ''}">💳 ${v.actif ? 'Versement actif' : 'Entente validée'} — retirer</button>`;
+}
+
+async function validerEntente(id, valide){
+  let motif = '';
+  if (!valide) {
+    motif = prompt('Motif du refus (vu par l\'entreprise) :', '') ;
+    if (motif === null) return;
+  }
+  await majEnt(id, { versementValide: valide, motifRefus: motif });
+}
+
+/* ---- Dossier d'inscription ---- */
+function ligneFiche(etiquette, valeur, brut){
+  if (valeur === undefined || valeur === null || valeur === '') return '';
+  return `<div style="display:flex;gap:14px;padding:9px 0;border-bottom:1px solid var(--bordure)">
+    <span class="petit muet" style="flex:0 0 190px">${ech(etiquette)}</span>
+    <span style="flex:1;font-size:14px">${brut ? valeur : ech(valeur)}</span></div>`;
+}
+function dateHeure(iso){
+  if (!iso) return '';
+  const d = new Date(iso);
+  return isNaN(d) ? String(iso) : d.toLocaleString('fr-CA', { dateStyle:'long', timeStyle:'short' });
+}
+
+function voirDossier(id){
+  const e = entreprises.find(x => x.id === id);
+  if (!e) return;
+  const ab = e.abonnement || {};
+  const ct = ab.contrat || null;
+  const po = ab.politique || null;
+  const v = e.volumes || {};
+  const resp = (e.responsables || []).map(r =>
+    `${ech(r.nom)} &lt;${ech(r.email)}&gt;${r.courrielVerifie ? '' : ' <span class="badge badge-orange">courriel non vérifié</span>'}`
+  ).join('<br>') || '—';
+
+  document.getElementById('corpsDossier').innerHTML = `
+    <h2 style="font-size:19px">${ech(e.nom)}</h2>
+    <p class="petit muet" style="margin-top:2px">
+      <a target="_blank" href="/${e.slug}">/${e.slug} ↗</a> · inscrite le ${ech(dateHeure(e.creeLe))}</p>
+
+    <h3 class="petit" style="margin:20px 0 4px;color:#60A5FA;letter-spacing:.06em">RESPONSABLE</h3>
+    ${ligneFiche('Nom et adresse', resp, true)}
+
+    <h3 class="petit" style="margin:20px 0 4px;color:#60A5FA;letter-spacing:.06em">ENTREPRISE</h3>
+    ${ligneFiche('Métier déclaré', e.metier)}
+    ${ligneFiche('Catégorie', e.categorie)}
+    ${ligneFiche('Téléphone', e.telephone)}
+    ${ligneFiche('WhatsApp', e.whatsapp)}
+    ${ligneFiche('Adresse', e.adresse)}
+    ${ligneFiche('Courriel de contact', e.email)}
+    ${ligneFiche('Description', e.description)}
+
+    <h3 class="petit" style="margin:20px 0 4px;color:#60A5FA;letter-spacing:.06em">ABONNEMENT</h3>
+    ${ligneFiche('Forfait choisi', ab.forfait)}
+    ${ligneFiche('Essai gratuit jusqu\'au', ab.finEssai ? dateHeure(ab.finEssai) : '')}
+    ${ligneFiche('Statut', e.statut)}
+
+    <h3 class="petit" style="margin:20px 0 4px;color:#60A5FA;letter-spacing:.06em">ENGAGEMENTS SIGNÉS</h3>
+    ${ligneFiche('Politique acceptée', po ? dateHeure(po.le) : 'Non enregistrée')}
+    ${ct ? ligneFiche('Contrat signé par', ct.signature) : ''}
+    ${ct ? ligneFiche('En qualité de', ct.qualite) : ''}
+    ${ct ? ligneFiche('Signé le', dateHeure(ct.le)) : ''}
+    ${ct ? ligneFiche('Version du contrat', ct.version) : ''}
+    ${!ct ? ligneFiche('Contrat', 'Aucune signature enregistrée') : ''}
+
+    <h3 class="petit" style="margin:20px 0 4px;color:#60A5FA;letter-spacing:.06em">DONNÉES ACCUMULÉES</h3>
+    ${ligneFiche('Rendez-vous', String(e.totalRdv || 0))}
+    ${ligneFiche('Services', String(v.services || 0))}
+    ${ligneFiche('Produits', String(v.produits || 0))}
+    ${ligneFiche('Commandes', String(v.commandes || 0))}
+    ${ligneFiche('Chambres / séjours', `${v.chambres || 0} / ${v.sejours || 0}`)}
+    ${ligneFiche('Dossiers clients', String(v.dossiers || 0))}
+    ${ligneFiche('Employés', String(v.employes || 0))}
+    ${ligneFiche('Écritures comptables', String(v.ecritures || 0))}`;
+  document.getElementById('voileDossier').classList.add('ouvert');
+}
+function fermerDossier(){ document.getElementById('voileDossier').classList.remove('ouvert'); }
+
+/* ---- Suppression définitive ---- */
+function supprimerEnt(id){
+  const e = entreprises.find(x => x.id === id);
+  if (!e) return;
+  const v = e.volumes || {};
+  const total = (e.totalRdv||0) + (v.commandes||0) + (v.sejours||0) + (v.dossiers||0) + (v.ecritures||0);
+  document.getElementById('nomASupprimer').textContent = e.nom;
+  document.getElementById('resumeSuppression').innerHTML = total
+    ? `Cette entreprise a accumulé <strong>${total} enregistrement(s)</strong> :
+       ${e.totalRdv||0} rendez-vous, ${v.commandes||0} commande(s), ${v.sejours||0} séjour(s),
+       ${v.dossiers||0} dossier(s) et ${v.ecritures||0} écriture(s) comptable(s).
+       Tout sera effacé avec elle.`
+    : "Cette entreprise n'a encore aucune donnée enregistrée.";
+  document.getElementById('champConfirmation').value = '';
+  document.getElementById('errSuppression').textContent = '';
+  document.getElementById('voileSuppression').dataset.id = id;
+  document.getElementById('voileSuppression').dataset.nom = e.nom;
+  document.getElementById('voileSuppression').classList.add('ouvert');
+}
+function fermerSuppression(){ document.getElementById('voileSuppression').classList.remove('ouvert'); }
+
+async function confirmerSuppression(){
+  const voile = document.getElementById('voileSuppression');
+  const err = document.getElementById('errSuppression');
+  const saisi = document.getElementById('champConfirmation').value.trim();
+  if (saisi !== voile.dataset.nom) {
+    err.textContent = "Le nom saisi ne correspond pas. Recopiez-le exactement.";
+    return;
+  }
+  const b = document.getElementById('btnSupprimer');
+  b.disabled = true; b.textContent = 'Suppression…';
+  try {
+    const r = await api('/api/admin/entreprises/' + voile.dataset.id, 'DELETE', { confirmation: saisi });
+    fermerSuppression();
+    toast(`« ${r.nom} » supprimée définitivement.`);
+    await charger();
+  } catch (ex) {
+    err.textContent = ex.message;
+  }
+  b.disabled = false; b.textContent = 'Supprimer définitivement';
+}
+
+async function majEnt(id, donnees){
+  await api('/api/admin/entreprises/'+id,'PUT',donnees);
+  toast('Entreprise mise à jour.');
+  entreprises = await api('/api/admin/entreprises');
+  dessiner();
+}
+
+charger();
+</script>
+</body>
+</html>

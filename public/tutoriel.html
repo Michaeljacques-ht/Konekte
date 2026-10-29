@@ -1,0 +1,713 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tutoriel — Konekte</title>
+<link rel="icon" href="/favicon.ico" sizes="any">
+<link rel="icon" type="image/png" sizes="192x192" href="/icone-192.png">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<meta name="theme-color" content="#0B2C6B">
+<meta name="description" content="Comment utiliser Konekte, pas à pas : chercher une entreprise, acheter ou réserver, suivre sa commande, et pour les entreprises, s'inscrire et gérer son espace.">
+<link rel="stylesheet" href="/style.css">
+<script src="/app.js"></script>
+<script src="/translations.js"></script>
+<style>
+  /* ============================================================
+     Tutoriel
+     ------------------------------------------------------------
+     Deux sortes de repères visuels.
+     Les boutons et les menus cités dans le texte sont dessinés en
+     CSS (.repere, .faux-nav, .faux-menu) : quelques octets, nets à
+     toute taille, et traduits avec le reste.
+     La visite guidée de l'espace entreprise, elle, montre de
+     vraies captures. Elles ne se chargent qu'au moment où la
+     personne y arrive (loading="lazy") : sur une connexion lente,
+     la page s'affiche d'abord en entier, les images suivent.
+     ============================================================ */
+
+  /* Visite guidée en images */
+  .vue-tuto { margin-top: 22px; }
+  .vue-tuto > h4 { font-size: 16.5px; color: var(--marine); display: flex; align-items: center;
+    gap: 9px; flex-wrap: wrap; }
+  .vue-tuto > h4 .num { display: grid; place-items: center; width: 26px; height: 26px; flex: none;
+    border-radius: 9px; background: var(--degrade); color: #fff; font-size: 13px; font-weight: 800; }
+  .vue-tuto > p { font-size: 14.5px; line-height: 1.65; color: var(--texte); margin-top: 8px; }
+  .vue-tuto ul { margin: 10px 0 0 18px; }
+  .vue-tuto li { font-size: 14.5px; line-height: 1.6; margin-bottom: 5px; }
+  .capture { display: block; margin-top: 12px; border-radius: 14px; overflow: hidden;
+    border: 1px solid var(--bordure); box-shadow: var(--ombre); background: var(--gris-clair); }
+  .capture img { display: block; width: 100%; height: auto; aspect-ratio: 1120 / 740; }
+  .capture:hover { border-color: var(--bleu); }
+  .legende-capture { font-size: 12.5px; color: var(--gris); margin-top: 7px; }
+
+  /* Choix du public : client ou entreprise */
+  .choix-public { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 18px; }
+  .onglet-public { flex: 1; min-width: 230px; text-align: left; background: #fff;
+    border: 2px solid var(--bordure); border-radius: var(--r-carte); padding: 18px 20px;
+    cursor: pointer; font: inherit; transition: border-color .15s, transform .15s, box-shadow .15s; }
+  .onglet-public:hover { transform: translateY(-2px); box-shadow: var(--ombre); }
+  .onglet-public.on { border-color: var(--bleu); box-shadow: 0 0 0 4px rgba(37,99,235,.12); }
+  .onglet-public .ico { font-size: 26px; }
+  .onglet-public strong { display: block; font-size: 16.5px; color: var(--marine); margin-top: 6px; }
+  .onglet-public span { display: block; font-size: 13.5px; color: var(--gris); margin-top: 3px; }
+
+  /* Une étape du tutoriel */
+  .pas-tuto { display: grid; grid-template-columns: 46px 1fr; gap: 16px; align-items: start;
+    padding: 20px 0; border-bottom: 1px solid var(--bordure); }
+  .pas-tuto:last-child { border-bottom: none; }
+  .pas-tuto .rang { width: 46px; height: 46px; border-radius: 14px; display: grid; place-items: center;
+    background: var(--degrade); color: #fff; font-weight: 800; font-size: 19px; }
+  .pas-tuto h3 { font-size: 17.5px; color: var(--marine); }
+  .pas-tuto p { font-size: 14.5px; line-height: 1.6; color: var(--texte); margin-top: 6px; }
+  .pas-tuto ul { margin: 10px 0 0 18px; }
+  .pas-tuto li { font-size: 14.5px; line-height: 1.6; margin-bottom: 5px; }
+  @media (max-width: 560px) {
+    .pas-tuto { grid-template-columns: 38px 1fr; gap: 12px; }
+    .pas-tuto .rang { width: 38px; height: 38px; border-radius: 12px; font-size: 16px; }
+  }
+
+  /* Reproduction d'un bouton ou d'un menu de la plateforme, pour que
+     la personne reconnaisse à l'écran ce dont parle le texte. */
+  .repere { display: inline-flex; align-items: center; gap: 6px; background: var(--bleu-clair);
+    color: var(--marine); border: 1px solid #C7D9F7; border-radius: 8px;
+    padding: 2px 9px; font-size: 13.5px; font-weight: 700; white-space: nowrap; }
+  .repere.orange { background: var(--orange-fond); color: #C4520E; border-color: #F7C9A8; }
+  .repere.vert { background: var(--vert-fond); color: #07684A; border-color: #B6E4D4; }
+
+  /* Barre de navigation reproduite */
+  .faux-nav { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; background: #fff;
+    border: 1px solid var(--bordure); border-radius: 14px; padding: 10px 14px; margin-top: 12px;
+    box-shadow: var(--ombre); }
+  .faux-nav .marque { font-weight: 800; color: var(--marine); margin-right: 6px; }
+  .faux-nav .item { font-size: 13px; color: var(--gris); padding: 5px 10px; border-radius: 99px; }
+  .faux-nav .item.on { background: var(--gris-clair); color: var(--marine); font-weight: 700; }
+  .faux-nav .bout { font-size: 12.5px; font-weight: 700; padding: 6px 12px; border-radius: 99px;
+    background: var(--marine); color: #fff; }
+
+  /* Menu latéral de l'espace entreprise, reproduit */
+  .faux-menu { background: var(--marine); border-radius: 16px; padding: 12px; margin-top: 12px; }
+  .faux-menu div { color: #C6D2E8; font-size: 13.5px; padding: 7px 12px; border-radius: 10px; }
+  .faux-menu div.on { background: rgba(255,255,255,.14); color: #fff; font-weight: 700; }
+
+  .bloc-tuto { display: none; }
+  .bloc-tuto.visible { display: block; }
+
+  .encadre-note { background: var(--orange-fond); border-left: 4px solid var(--orange);
+    border-radius: 0 12px 12px 0; padding: 14px 18px; margin-top: 14px; }
+  .encadre-note p { font-size: 14px; line-height: 1.6; margin: 0; color: #7A3A0C; }
+
+  /* Sommaire collant, pour ne pas se perdre dans une page longue */
+  .sommaire { display: flex; gap: 8px; flex-wrap: wrap; position: sticky; top: 72px; z-index: 20;
+    background: rgba(248,250,253,.94); backdrop-filter: blur(6px);
+    padding: 10px 0; margin-top: 10px; }
+  .sommaire a { font-size: 13px; font-weight: 700; color: var(--marine); background: #fff;
+    border: 1px solid var(--bordure); border-radius: 99px; padding: 6px 13px; text-decoration: none; }
+  .sommaire a:hover { border-color: var(--bleu); background: var(--bleu-clair); text-decoration: none; }
+
+  .q-tuto { border: 1px solid var(--bordure); border-radius: 12px; padding: 14px 16px; margin-top: 10px; background: #fff; }
+  .q-tuto summary { font-weight: 700; color: var(--marine); cursor: pointer; font-size: 14.5px; }
+  .q-tuto p { font-size: 14px; line-height: 1.6; color: var(--texte); margin-top: 10px; }
+</style>
+</head>
+<body>
+
+<nav class="nav">
+  <div class="conteneur nav-int">
+    <button class="burger" aria-label="Menu" aria-expanded="false" onclick="basculerMenu(this)">☰</button>
+    <a class="logo" href="/"><img src="/logo-marque.png" alt="" style="height:34px;width:auto">Konekte</a>
+    <div class="nav-liens">
+      <a href="/" data-i18n="acc.nav.accueil">Accueil</a>
+      <a href="/boutique.html" data-i18n="bq.nav">Boutique</a>
+      <a href="/mes-achats.html" data-i18n="nav.achats">Mes achats</a>
+      <a href="/categories.html" data-i18n="acc.nav.categories">Catégories</a>
+      <a href="/tutoriel.html" class="actif" data-i18n="nav.tutoriel">Tutoriel</a>
+      <a href="/apropos.html" data-i18n="acc.nav.apropos">À propos</a>
+      <a href="/contact.html" data-i18n="nav.contact">Contact</a>
+      <a class="btn btn-contour lien-mobile" href="/connexion.html" data-i18n="acc.nav.connexion">Se connecter</a>
+      <a class="btn btn-primaire lien-mobile" href="/inscription.html" data-i18n="acc.nav.inscrire">Inscrire mon entreprise</a>
+    </div>
+    <div class="nav-droite">
+      <button class="btn btn-fantome" id="btnLangue" style="font-size:14px" onclick="basculerLangue()">🌐 FR/HT</button>
+      <a class="btn btn-contour" href="/connexion.html" data-i18n="acc.nav.connexion">Se connecter</a>
+      <a class="btn btn-primaire" href="/inscription.html" data-i18n="acc.nav.inscrire">Inscrire mon entreprise</a>
+    </div>
+  </div>
+</nav>
+
+<main class="conteneur">
+  <section class="section" style="padding-top:8px">
+    <span class="eyebrow" data-i18n="tu.eyebrow">Tutoriel</span>
+    <h2 data-i18n="tu.titre">Comment utiliser Konekte</h2>
+    <p class="muet" style="max-width:66ch;margin-top:8px" data-i18n="tu.intro">Suivez les étapes dans l'ordre. Chaque bouton nommé ici porte exactement le même nom sur le site, pour que vous le reconnaissiez du premier coup d'œil.</p>
+
+    <div class="choix-public">
+      <button class="onglet-public on" data-public="client" onclick="choisirPublic('client')">
+        <span class="ico">🛍️</span>
+        <strong data-i18n="tu.pub1t">Je veux acheter ou réserver</strong>
+        <span data-i18n="tu.pub1d">Trouver une entreprise, commander un produit, prendre un rendez-vous, suivre ma commande.</span>
+      </button>
+      <button class="onglet-public" data-public="entreprise" onclick="choisirPublic('entreprise')">
+        <span class="ico">🏪</span>
+        <strong data-i18n="tu.pub2t">J'ai une entreprise</strong>
+        <span data-i18n="tu.pub2d">M'inscrire, remplir mon catalogue, recevoir des commandes, encaisser et suivre mes comptes.</span>
+      </button>
+    </div>
+
+    <!-- ===================== CÔTÉ CLIENT ===================== -->
+    <div class="bloc-tuto visible" id="bloc-client">
+      <div class="sommaire">
+        <a href="#c1">1. Trouver</a>
+        <a href="#c2">2. Acheter</a>
+        <a href="#c3">3. Réserver</a>
+        <a href="#c4">4. Payer</a>
+        <a href="#c5">5. Suivre</a>
+        <a href="#cq">Problèmes</a>
+      </div>
+
+      <h3 id="c1" style="margin-top:26px">Trouver une entreprise ou un produit</h3>
+      <p class="petit muet">Trois chemins mènent au même endroit. Prenez celui qui vous convient.</p>
+      <div class="faux-nav" aria-hidden="true">
+        <span class="marque">Konekte</span>
+        <span class="item on">Accueil</span>
+        <span class="item">Boutique</span>
+        <span class="item">Mes achats</span>
+        <span class="item">Catégories</span>
+        <span class="item">Tutoriel</span>
+        <span class="bout">Inscrire mon entreprise</span>
+      </div>
+
+      <div class="carte mt"><div class="carte-corps">
+        <div class="pas-tuto">
+          <div class="rang">1</div>
+          <div>
+            <h3>Par la recherche, si vous savez ce que vous cherchez</h3>
+            <p>Sur la page d'accueil, tapez un nom, une activité ou une ville dans <span class="repere">Que cherchez-vous ?</span> puis appuyez sur <span class="repere">Rechercher</span>. Le champ <span class="repere">Localisation</span> est facultatif : laissez-le vide pour chercher dans tout le pays.</p>
+          </div>
+        </div>
+        <div class="pas-tuto">
+          <div class="rang">2</div>
+          <div>
+            <h3>Par les catégories, si vous hésitez</h3>
+            <p>Ouvrez <span class="repere">Catégories</span> dans le menu du haut. Beauté, Santé, Juridique, Formation, Commerce, Hôtellerie, Auto, Maison, Urgences : chaque catégorie annonce combien d'entreprises elle contient. Cliquez sur <span class="repere">Voir</span> pour les afficher.</p>
+          </div>
+        </div>
+        <div class="pas-tuto">
+          <div class="rang">3</div>
+          <div>
+            <h3>Par la boutique, pour comparer les produits</h3>
+            <p>Ouvrez <span class="repere">Boutique</span>. Vous y voyez les produits de tous les vendeurs à la fois, avec leur prix et leur disponibilité. Les filtres par rayon — Divers, Électronique, Jeux, Meubles, Quincaillerie — réduisent la liste, et <span class="repere">Trier</span> la range par prix.</p>
+          </div>
+        </div>
+      </div></div>
+
+      <h3 id="c2" style="margin-top:34px">Acheter un produit</h3>
+      <div class="carte mt"><div class="carte-corps">
+        <div class="pas-tuto">
+          <div class="rang">1</div>
+          <div>
+            <h3>Ouvrez la fiche du produit</h3>
+            <p>Cliquez sur le produit — n'importe où sur sa carte, ou sur <span class="repere">Commander</span>. Sa fiche s'ouvre avec les photos, le prix, l'état du stock, le mode de remise, le délai et la quantité. Vous n'avez pas à parcourir le catalogue entier du vendeur pour le retrouver.</p>
+          </div>
+        </div>
+        <div class="pas-tuto">
+          <div class="rang">2</div>
+          <div>
+            <h3>Choisissez la quantité, puis Acheter</h3>
+            <p>Les boutons <strong>−</strong> et <strong>+</strong> règlent la quantité ; le total se recalcule à côté. <span class="repere">🛒 Acheter</span> met l'article dans votre panier. Une pastille apparaît en bas de l'écran avec le nombre d'articles et le total : elle ouvre le panier.</p>
+            <div class="encadre-note">
+              <p>Un produit marqué <span class="repere orange">Bientôt disponible</span> ou <span class="repere orange">Fini</span> ne peut pas être acheté tout de suite. S'il porte <span class="repere">⏳ Précommander</span>, vous pouvez réserver le vôtre dès maintenant ; sinon, le bouton WhatsApp prévient le vendeur de vous avertir.</p>
+            </div>
+          </div>
+        </div>
+        <div class="pas-tuto">
+          <div class="rang">3</div>
+          <div>
+            <h3>Dites où vous voulez recevoir</h3>
+            <p>Dans le panier, choisissez <span class="repere">🏪 Retrait sur place</span> ou <span class="repere">🛵 Livraison</span>. Pour la livraison, sélectionnez votre zone : son tarif s'ajoute au total, et une adresse hors zone prend le tarif par défaut. Donnez un point de repère, cela aide le livreur bien plus qu'une adresse exacte.</p>
+          </div>
+        </div>
+        <div class="pas-tuto">
+          <div class="rang">4</div>
+          <div>
+            <h3>Laissez votre nom et votre numéro</h3>
+            <p>Le nom et le téléphone sont obligatoires — c'est par là que le commerçant vous joint. L'adresse email est facultative mais recommandée : c'est elle qui vous permettra de suivre votre commande en ligne. Appuyez ensuite sur le bouton de validation, et votre référence s'affiche.</p>
+          </div>
+        </div>
+      </div></div>
+
+      <h3 id="c3" style="margin-top:34px">Prendre un rendez-vous ou réserver une chambre</h3>
+      <div class="carte mt"><div class="carte-corps">
+        <div class="pas-tuto">
+          <div class="rang">1</div>
+          <div>
+            <h3>Ouvrez la page de l'entreprise</h3>
+            <p>Depuis la recherche ou une catégorie, cliquez sur son nom. Vous arrivez sur sa page : son affiche, ses coordonnées, ses horaires, son emplacement sur la carte et ce qu'elle propose. Le bouton en haut — <span class="repere">Réserver</span> ou <span class="repere">Acheter</span> selon le métier — descend directement à ce qu'elle vend.</p>
+          </div>
+        </div>
+        <div class="pas-tuto">
+          <div class="rang">2</div>
+          <div>
+            <h3>Choisissez la prestation, puis le créneau</h3>
+            <p>Appuyez sur <span class="repere">Choisir</span> à côté du service voulu. Un calendrier s'ouvre : les créneaux libres sont calculés à partir des horaires de l'entreprise et des rendez-vous déjà pris. Un créneau qui n'apparaît pas est un créneau déjà occupé.</p>
+          </div>
+        </div>
+        <div class="pas-tuto">
+          <div class="rang">3</div>
+          <div>
+            <h3>Pour une chambre, donnez vos dates</h3>
+            <p>Dans un hôtel ou une auberge, indiquez l'arrivée et le départ. Le nombre de nuits, le prix par nuit, les taxes et l'acompte éventuel s'affichent avant que vous validiez. Rien ne vous est demandé avant cet affichage.</p>
+          </div>
+        </div>
+      </div></div>
+
+      <h3 id="c4" style="margin-top:34px">Payer</h3>
+      <div class="carte mt"><div class="carte-corps">
+        <p>C'est l'entreprise qui décide des moyens qu'elle accepte. Vous verrez donc, selon le cas, l'un ou l'autre de ces choix :</p>
+        <div class="grille mt" style="grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px">
+          <div class="panneau"><strong>💳 En ligne</strong>
+            <p class="petit muet" style="margin-top:4px">MonCash, NatCash ou Kashpaw. Vous payez au moment de la commande et recevez un reçu avec sa référence.</p></div>
+          <div class="panneau"><strong>💵 À la remise</strong>
+            <p class="petit muet" style="margin-top:4px">En espèces, quand vous recevez la commande ou quand vous passez la chercher. Rien n'est prélevé d'avance.</p></div>
+          <div class="panneau"><strong>🤝 Par versement</strong>
+            <p class="petit muet" style="margin-top:4px">Quelques boutiques proposent <span class="repere orange">Payer par versement</span> sur certains articles : celles qui ont signé une entente avec Micro Crédit Solidarité. Le bouton mène à l'organisme, qui décide seul.</p></div>
+        </div>
+      </div></div>
+
+      <h3 id="c5" style="margin-top:34px">Suivre ma commande</h3>
+      <div class="carte mt"><div class="carte-corps">
+        <div class="pas-tuto">
+          <div class="rang">1</div>
+          <div>
+            <h3>Par le courriel reçu</h3>
+            <p>À chaque étape — commande reçue, confirmée, en préparation, en route — un courriel part. Le bouton <span class="repere">Suivre ma commande</span> vous amène directement sur la page de suivi, votre adresse déjà saisie.</p>
+          </div>
+        </div>
+        <div class="pas-tuto">
+          <div class="rang">2</div>
+          <div>
+            <h3>Par Mes achats, à tout moment</h3>
+            <p>Ouvrez <span class="repere">Mes achats</span> dans le menu, saisissez l'adresse email ou le numéro que vous avez utilisé en commandant, puis <span class="repere">Recevoir mon code</span>. Un code à six chiffres arrive par courriel. Il n'y a aucun compte à créer, aucun mot de passe à retenir.</p>
+          </div>
+        </div>
+        <div class="pas-tuto">
+          <div class="rang">3</div>
+          <div>
+            <h3>Lisez l'avancement</h3>
+            <p>Chaque achat montre sa référence, son montant, ses articles et une barre d'étapes. L'étape en cours est en gras. Les boutons <span class="repere">Voir l'entreprise</span> et <span class="repere vert">Écrire</span> vous mettent en rapport avec le vendeur si quelque chose cloche.</p>
+          </div>
+        </div>
+      </div></div>
+
+      <h3 id="cq" style="margin-top:34px">Si quelque chose ne va pas</h3>
+      <details class="q-tuto"><summary>Je n'ai pas reçu mon code</summary>
+        <p>Regardez d'abord dans vos courriels indésirables. Vérifiez ensuite que vous saisissez bien l'adresse utilisée au moment de la commande : le code part à cette adresse-là, pas à une autre. Si vous aviez commandé sans laisser d'email, essayez avec votre numéro de téléphone.</p></details>
+      <details class="q-tuto"><summary>Le produit que je veux est marqué « Fini »</summary>
+        <p>La boutique n'en a plus en stock. S'il porte le bouton de précommande, réservez le vôtre : vous serez servi à l'arrivée du prochain lot. Sinon, le bouton WhatsApp prévient le commerçant que vous l'attendez.</p></details>
+      <details class="q-tuto"><summary>Je me suis trompé dans ma commande</summary>
+        <p>Écrivez au commerçant tout de suite, par le bouton WhatsApp de sa page ou depuis Mes achats. Tant que la commande n'est pas partie, il peut la corriger ou l'annuler. C'est lui qui gère ses commandes, pas Konekte.</p></details>
+      <details class="q-tuto"><summary>La page est lente ou ne s'affiche pas</summary>
+        <p>Konekte fonctionne sur connexion lente, mais une page déjà ouverte peut rester en mémoire dans votre téléphone. Fermez l'onglet et rouvrez le site. Si l'affichage reste ancien, effacez les données du site dans votre navigateur : ⋮ → Informations sur le site → Effacer.</p></details>
+    </div>
+
+    <!-- ===================== CÔTÉ ENTREPRISE ===================== -->
+    <div class="bloc-tuto" id="bloc-entreprise">
+      <div class="sommaire">
+        <a href="#e1">1. S'inscrire</a>
+        <a href="#e2">2. Se repérer</a>
+        <a href="#ev">📸 Visite en images</a>
+        <a href="#e3">3. Remplir</a>
+        <a href="#e4">4. Vendre</a>
+        <a href="#e5">5. Encaisser</a>
+        <a href="#e6">6. Se faire connaître</a>
+        <a href="#eq">Problèmes</a>
+      </div>
+
+      <h3 id="e1" style="margin-top:26px">S'inscrire, en cinq étapes</h3>
+      <p class="petit muet">Comptez une quinzaine de minutes. Vous pouvez tout modifier ensuite depuis votre espace.</p>
+      <div class="carte mt"><div class="carte-corps">
+        <div class="pas-tuto">
+          <div class="rang">1</div>
+          <div>
+            <h3>Le formulaire</h3>
+            <p>Depuis <span class="repere">Inscrire mon entreprise</span>, donnez le nom, le <strong>type d'activité</strong>, le téléphone et l'adresse. Le type d'activité est le choix le plus important de toute l'inscription : il décide des fonctions que votre espace vous ouvrira. Juste sous le menu déroulant, une phrase vous annonce ce que vous obtiendrez.</p>
+            <ul>
+              <li><strong>Salon, clinique, garage, cabinet</strong> — rendez-vous, équipe, catalogue.</li>
+              <li><strong>Boutique, magasin, supermarché</strong> — catalogue et commandes, sans rendez-vous.</li>
+              <li><strong>Hôtel, auberge, restaurant</strong> — chambres, séjours, tarifs et planning.</li>
+              <li><strong>École, centre de formation</strong> — programmes et inscriptions en ligne.</li>
+            </ul>
+            <div class="encadre-note">
+              <p>Le logo et la photo d'en-tête sont facultatifs à ce moment-là. Si vous les avez sous la main, mettez-les tout de suite : votre page publique est beaucoup plus convaincante avec une affiche. Les images sont réduites automatiquement avant l'envoi, inutile de les préparer.</p>
+            </div>
+          </div>
+        </div>
+        <div class="pas-tuto">
+          <div class="rang">2</div>
+          <div>
+            <h3>Le règlement</h3>
+            <p>Faites défiler le texte jusqu'en bas : la case d'acceptation ne s'active qu'une fois le texte parcouru. Cochez aussi la déclaration qui confirme que vous êtes habilité à engager l'entreprise.</p>
+          </div>
+        </div>
+        <div class="pas-tuto">
+          <div class="rang">3</div>
+          <div>
+            <h3>Le forfait</h3>
+            <p>Trois formules, toutes avec 30 jours gratuits. Découverte à 1 000 HTG par mois pour démarrer, Pro à 1 500 HTG quand vous recevez des clients régulièrement, Hôtellerie &amp; Commerce à 2 500 HTG pour ceux qui encaissent beaucoup — c'est la commission la plus basse. Vous changez de formule à tout moment sans perdre votre période d'essai.</p>
+          </div>
+        </div>
+        <div class="pas-tuto">
+          <div class="rang">4</div>
+          <div>
+            <h3>Le contrat</h3>
+            <p>Relisez le récapitulatif, puis signez en saisissant votre nom complet et votre qualité — propriétaire, gérante, directeur. La saisie du nom vaut signature.</p>
+          </div>
+        </div>
+        <div class="pas-tuto">
+          <div class="rang">5</div>
+          <div>
+            <h3>L'activation</h3>
+            <p>Un lien d'activation part sur votre adresse email. Cliquez dessus et votre page publique est en ligne. Si le courriel n'arrive pas, regardez dans vos indésirables avant de recommencer l'inscription — un deuxième compte avec la même adresse sera refusé.</p>
+          </div>
+        </div>
+      </div></div>
+
+      <h3 id="e2" style="margin-top:34px">Se repérer dans votre espace</h3>
+      <p class="petit muet">Le menu de gauche ne montre que ce qui concerne votre métier. Une boutique n'y verra pas « Chambres », un hôtel n'y verra pas « Programmes ».</p>
+      <div class="faux-menu" aria-hidden="true">
+        <div class="on">Tableau de bord</div>
+        <div>Catalogue</div>
+        <div>Commandes</div>
+        <div>Livraison &amp; retrait</div>
+        <div>Portefeuille &amp; Paiements</div>
+        <div>Comptabilité</div>
+        <div>Avis &amp; Notes</div>
+        <div>Code QR &amp; flyer</div>
+        <div>Personnalisation</div>
+        <div>Mon abonnement</div>
+        <div>Paramètres &amp; horaires</div>
+      </div>
+      <div class="carte mt"><div class="carte-corps">
+        <p>Le <strong>Tableau de bord</strong> s'adapte lui aussi. Un commerce y voit ses commandes du jour et du mois, ce qui reste à préparer et ses ventes du mois. Un salon y voit ses rendez-vous, un hôtel ses réservations, ses séjours en cours et les arrivées du jour. La courbe des 14 derniers jours suit cette même activité.</p>
+      </div></div>
+
+      <!-- ---------- Visite guidée en captures d'écran ---------- -->
+      <h3 id="ev" style="margin-top:34px">Votre espace, écran par écran</h3>
+      <p class="petit muet">Voici chacun des onze menus, tel qu'il s'affiche. Les exemples viennent d'une boutique ; un salon ou un hôtel verra les mêmes écrans avec son propre vocabulaire. Touchez une image pour l'agrandir.</p>
+
+      <div class="carte mt"><div class="carte-corps">
+
+        <div class="vue-tuto">
+          <h4><span class="num">1</span> Tableau de bord</h4>
+          <p>C'est la page d'accueil de votre espace, et le seul écran à regarder le matin. En haut, le bandeau <span class="repere">Partagez votre boutique</span> copie votre adresse publique ou l'envoie directement sur WhatsApp et Facebook. Cette adresse est aussi affichée en permanence en haut à droite : c'est elle, et aucune autre, qu'il faut donner à vos clients.</p>
+          <p>Dessous, vos chiffres. Le carré encadré en orange est celui qui demande une action : ce qui reste <strong>à préparer</strong>. À gauche, les dernières commandes reçues ; à droite, la courbe de votre activité sur quatorze jours. La cloche signale ce qui est arrivé pendant votre absence.</p>
+          <a class="capture" href="/tuto/bord.jpg" target="_blank" rel="noopener">
+            <img src="/tuto/bord.jpg" loading="lazy" width="1120" height="740" alt="Tableau de bord : bandeau de partage, commandes du jour et du mois, à préparer, ventes du mois, commandes récentes et courbe d'activité.">
+          </a>
+          <p class="legende-capture">Un salon voit ici ses rendez-vous du jour, un hôtel ses réservations, ses séjours en cours et ses arrivées.</p>
+        </div>
+
+        <div class="vue-tuto">
+          <h4><span class="num">2</span> Catalogue</h4>
+          <p>La liste de tout ce que vous vendez. <span class="repere">+ Ajouter un produit</span> en ouvre un nouveau ; les deux listes déroulantes filtrent par rayon et par état.</p>
+          <ul>
+            <li>La colonne <strong>Stock</strong> a un <span class="repere">–</span> et un <span class="repere">+</span> : vous corrigez une quantité sans ouvrir la fiche.</li>
+            <li>Un produit tombé à zéro disparaît tout seul de votre page publique, mais reste visible ici pour vous.</li>
+            <li>Un bandeau orange prévient quand un produit passe sous son seuil d'alerte.</li>
+            <li>À droite, le crayon modifie, le rond barré retire de la vente sans supprimer, la corbeille supprime.</li>
+          </ul>
+          <a class="capture" href="/tuto/catalogue.jpg" target="_blank" rel="noopener">
+            <img src="/tuto/catalogue.jpg" loading="lazy" width="1120" height="740" alt="Catalogue produits : alerte de réapprovisionnement, filtres par rayon, tableau produit, rayon, prix, stock et statut.">
+          </a>
+        </div>
+
+        <div class="vue-tuto">
+          <h4><span class="num">3</span> Commandes</h4>
+          <p>Chaque commande porte une référence courte, celle que votre client vous citera au téléphone. Les étiquettes disent tout d'un coup d'œil : où elle en est, si c'est un <span class="repere">Retrait</span> ou une <span class="repere">Livraison</span>, et si elle est <span class="repere vert">Payée</span> ou encore <span class="repere orange">À encaisser</span>.</p>
+          <p>Le stock est décompté à la confirmation, et restitué si vous annulez : vous n'avez jamais à le recalculer à la main. La petite bulle à côté du numéro ouvre WhatsApp avec le message déjà écrit.</p>
+          <a class="capture" href="/tuto/commandes.jpg" target="_blank" rel="noopener">
+            <img src="/tuto/commandes.jpg" loading="lazy" width="1120" height="740" alt="Commandes reçues : référence, statut, mode de remise, état du paiement, détail des articles et total.">
+          </a>
+        </div>
+
+        <div class="vue-tuto">
+          <h4><span class="num">4</span> Livraison &amp; retrait</h4>
+          <p>Trois cases commandent tout le reste : <span class="repere">Accepter les commandes en ligne</span>, <span class="repere">Retrait sur place</span>, <span class="repere">Livraison</span>. Décochez la première et votre page cesse de prendre des commandes, sans rien effacer.</p>
+          <ul>
+            <li><strong>Horaires de retrait</strong> et <strong>délai de préparation</strong> s'écrivent librement : « 8h à 18h », « 2h à 4h ». C'est ce que lit votre client avant de valider.</li>
+            <li><strong>Frais par défaut</strong> s'applique quand aucune zone ne correspond.</li>
+            <li><strong>Livraison offerte dès</strong> : mettez 0 pour ne jamais l'offrir.</li>
+            <li>Les <strong>zones</strong> permettent un prix par quartier, plus juste qu'un tarif unique.</li>
+          </ul>
+          <a class="capture" href="/tuto/vente.jpg" target="_blank" rel="noopener">
+            <img src="/tuto/vente.jpg" loading="lazy" width="1120" height="740" alt="Livraison et retrait : cases commandes en ligne, retrait sur place et livraison, horaires, délai, frais et zones.">
+          </a>
+        </div>
+
+        <div class="vue-tuto">
+          <h4><span class="num">5</span> Portefeuille &amp; Paiements</h4>
+          <p>Ce menu ne concerne que l'argent encaissé <em>par la plateforme</em> — MonCash ou carte. Ce qu'un client vous paie en espèces à la remise ne passe pas par ici.</p>
+          <ul>
+            <li>Le <strong>solde disponible</strong> est retirable tout de suite ; le <strong>bloqué</strong> correspond à un retrait déjà demandé.</li>
+            <li>Un retrait se demande à partir de <strong>1 000 HTG</strong>, vers un compte MonCash ou NatCash.</li>
+            <li>L'<strong>historique</strong> montre pour chaque encaissement le montant brut, la commission retenue et le net qui vous revient.</li>
+          </ul>
+          <a class="capture" href="/tuto/portefeuille.jpg" target="_blank" rel="noopener">
+            <img src="/tuto/portefeuille.jpg" loading="lazy" width="1120" height="740" alt="Portefeuille : solde disponible, montant bloqué, formulaire de demande de retrait et historique des paiements.">
+          </a>
+        </div>
+
+        <div class="vue-tuto">
+          <h4><span class="num">6</span> Comptabilité</h4>
+          <p>Comprise dans le forfait Pro. Vos ventes encaissées par Konekte s'y inscrivent toutes seules ; vous n'ajoutez à la main que le reste — le loyer, le carburant, un achat de marchandise — avec <span class="repere">+ Saisir une opération</span>.</p>
+          <p>Les onglets du haut couvrent le reste : <strong>Journal</strong>, <strong>Résultat</strong>, <strong>Mes caisses</strong>, <strong>Clients &amp; fournisseurs</strong> (ce qu'on vous doit et ce que vous devez), <strong>TCA</strong>, <strong>Balance</strong>. Les raccourcis <span class="repere">Ce mois</span>, <span class="repere">Mois dernier</span>, <span class="repere">Depuis le 1<sup>er</sup> janvier</span> règlent la période, et <span class="repere">Export comptable</span> produit le fichier à remettre à votre comptable.</p>
+          <a class="capture" href="/tuto/compta.jpg" target="_blank" rel="noopener">
+            <img src="/tuto/compta.jpg" loading="lazy" width="1120" height="740" alt="Comptabilité : onglets vue d'ensemble, journal, résultat, caisses, clients et fournisseurs, TCA, balance, choix de la période et export.">
+          </a>
+        </div>
+
+        <div class="vue-tuto">
+          <h4><span class="num">7</span> Avis &amp; Notes</h4>
+          <p>Tout ce que vos clients ont écrit après un achat, du plus récent au plus ancien. Ces avis s'affichent sur votre page publique et pèsent lourd sur un visiteur qui hésite entre vous et un autre. Tant que personne n'a écrit, l'écran reste vide : c'est normal les premiers jours.</p>
+          <a class="capture" href="/tuto/avis.jpg" target="_blank" rel="noopener">
+            <img src="/tuto/avis.jpg" loading="lazy" width="1120" height="740" alt="Avis et notes : liste des avis laissés par les clients.">
+          </a>
+        </div>
+
+        <div class="vue-tuto">
+          <h4><span class="num">8</span> Code QR &amp; flyer</h4>
+          <p>Le code mène directement à votre page : le client le scanne avec l'appareil photo de son téléphone, sans rien installer. <span class="repere">Télécharger le code QR</span> le donne en SVG, net de la carte de visite à l'affiche de deux mètres.</p>
+          <p>Juste dessous, vous composez un flyer prêt à imprimer : une accroche, un message sous le code, votre téléphone si vous le voulez. <span class="repere">Créer mon flyer</span> l'ouvre pour l'impression.</p>
+          <a class="capture" href="/tuto/qr.jpg" target="_blank" rel="noopener">
+            <img src="/tuto/qr.jpg" loading="lazy" width="1120" height="740" alt="Code QR et flyer : code à télécharger, adresse encodée et champs de personnalisation du flyer.">
+          </a>
+        </div>
+
+        <div class="vue-tuto">
+          <h4><span class="num">9</span> Personnalisation</h4>
+          <p>L'apparence de votre page publique et de votre carte dans l'annuaire. L'aperçu à droite se met à jour pendant que vous choisissez.</p>
+          <ul>
+            <li><strong>Couleur principale et secondaire</strong> : celles de votre enseigne, si vous en avez une.</li>
+            <li><strong>Logo</strong> : une à trois lettres, ou une image <em>carrée</em> qui les remplace.</li>
+            <li><strong>Photo de couverture</strong> : votre local, ou l'affiche de votre boutique. Elle s'affiche en entier, en haut de votre page.</li>
+            <li><strong>Où mène un clic sur la bannière</strong> : si votre affiche porte « Commandez maintenant ! », c'est ici que vous décidez vers quoi ce clic conduit.</li>
+          </ul>
+          <a class="capture" href="/tuto/perso.jpg" target="_blank" rel="noopener">
+            <img src="/tuto/perso.jpg" loading="lazy" width="1120" height="740" alt="Personnalisation : choix des couleurs, logo, photo de couverture, description et aperçu de la carte publique.">
+          </a>
+        </div>
+
+        <div class="vue-tuto">
+          <h4><span class="num">10</span> Mon abonnement</h4>
+          <p>Votre forfait, vos jours gratuits restants et la date du premier prélèvement, écrite noir sur blanc. <span class="repere">Payer par avance</span> règle plusieurs mois d'un coup.</p>
+          <p>Toutes les fonctions de votre métier sont ouvertes dans tous les forfaits : ce qui change, c'est le volume et les options — commandes en ligne et livraison, précommandes, paiement en ligne, comptabilité. Plus bas, <strong>Changer de forfait</strong> compare les trois formules : Découverte, Pro, Hôtellerie &amp; Commerce, dont la commission est la plus basse. Un changement prend effet tout de suite et ne touche pas à votre date de fin d'essai.</p>
+          <a class="capture" href="/tuto/abonnement.jpg" target="_blank" rel="noopener">
+            <img src="/tuto/abonnement.jpg" loading="lazy" width="1120" height="740" alt="Mon abonnement : forfait en cours, jours gratuits restants, date du premier prélèvement et options comprises.">
+          </a>
+        </div>
+
+        <div class="vue-tuto">
+          <h4><span class="num">11</span> Paramètres &amp; horaires</h4>
+          <p>Le menu le plus long, et celui qu'on ouvre le moins souvent. Il tient en huit blocs :</p>
+          <ul>
+            <li><strong>Informations de l'entreprise</strong> — nom, type d'activité, département, ville ou commune, adresse, téléphone, numéro WhatsApp. Le département et la ville vous situent dans les recherches « près de moi » et ouvrent les services réservés à votre commune. Changer le type d'activité adapte tout votre menu ; vos produits et vos rendez-vous sont conservés.</li>
+            <li><strong>Horaires d'ouverture</strong> — jour par jour ; ce sont eux qui décident des créneaux proposés à vos clients.</li>
+            <li><strong>Rythme des rendez-vous</strong> — l'espacement entre deux créneaux, et les pauses pendant lesquelles vous ne recevez pas.</li>
+            <li><strong>Position géographique</strong> — <span class="repere">Utiliser ma position actuelle</span>, ou les coordonnées copiées depuis Google Maps. C'est ce qui vous fait apparaître dans « près de moi » et qui ouvre l'itinéraire.</li>
+            <li><strong>Vos réseaux sociaux</strong> — les liens affichés sur votre page.</li>
+            <li><strong>Notifications sur mon téléphone</strong> — une alerte dès qu'un client réserve ou commande, même application fermée. <span class="repere">Envoyer un essai</span> vérifie que ça marche.</li>
+            <li><strong>Sécurité du compte</strong> — la vérification en deux étapes protège votre espace même si votre mot de passe est découvert.</li>
+            <li><strong>Messages WhatsApp pré-enregistrés</strong> — vos textes habituels, où <code>{client}</code>, <code>{date}</code>, <code>{heure}</code>, <code>{reference}</code> ou <code>{montant}</code> sont remplacés automatiquement.</li>
+          </ul>
+          <a class="capture" href="/tuto/param.jpg" target="_blank" rel="noopener">
+            <img src="/tuto/param.jpg" loading="lazy" width="1120" height="740" alt="Paramètres et horaires : informations de l'entreprise à gauche, demande de financement à droite.">
+          </a>
+          <div class="encadre-note">
+            <p>Sur cet écran figure aussi <strong>Financement de mon entreprise</strong>, mais seulement si votre entreprise se trouve dans une commune desservie — aujourd'hui <strong>Saint-Marc</strong>. Ailleurs, la carte n'apparaît pas. Micro Crédit Solidarité est une entité distincte de Konekte : votre demande est étudiée par ses agents, selon ses propres conditions.</p>
+            <p style="margin-top:6px">Juste en dessous se trouve <strong>Proposer le paiement par versement</strong>, qui concerne vos clients et non votre entreprise. Il n'apparaît pas tout seul sur vos produits : il faut d'abord signer une entente avec Micro Crédit Solidarité, en déclarer ici la référence, attendre que Konekte la vérifie, puis l'activer. Vous choisissez ensuite le montant à partir duquel le proposer, et s'il vaut pour tous vos produits ou seulement ceux que vous désignez dans leur fiche.</p>
+            <p style="margin-top:6px">C'est le champ <span class="repere">Ville ou commune</span> qui le détermine. Si vous êtes à Saint-Marc et que la carte reste absente, renseignez votre département et votre ville, puis <span class="repere">Enregistrer les informations</span>.</p>
+          </div>
+        </div>
+
+      </div></div>
+
+      <h3 id="e3" style="margin-top:34px">Remplir votre espace</h3>
+      <div class="carte mt"><div class="carte-corps">
+        <div class="pas-tuto">
+          <div class="rang">1</div>
+          <div>
+            <h3>Vos horaires, avant tout le reste</h3>
+            <p>Dans <span class="repere">Paramètres &amp; horaires</span>, déclarez vos jours et vos heures d'ouverture. C'est à partir de là que les créneaux de rendez-vous sont calculés. Un jour non déclaré est considéré comme fermé : mieux vaut une journée fermée à tort, qui se corrige en un clic, qu'un client devant un rideau baissé.</p>
+          </div>
+        </div>
+        <div class="pas-tuto">
+          <div class="rang">2</div>
+          <div>
+            <h3>Vos produits ou vos services</h3>
+            <p>Dans <span class="repere">Catalogue</span>, ajoutez chaque article avec sa photo, son prix, son rayon et son stock. Le stock se décompte à la confirmation d'une commande et revient si vous l'annulez. Un article épuisé reste visible, signalé « Fini » : votre client voit que vous le vendez et il reviendra.</p>
+          </div>
+        </div>
+        <div class="pas-tuto">
+          <div class="rang">3</div>
+          <div>
+            <h3>Vos couleurs et votre affiche</h3>
+            <p>Dans <span class="repere">Personnalisation</span>, choisissez vos deux couleurs, votre logo et votre photo de couverture. L'affiche s'affiche en entier, sur toute la largeur de votre page. Si elle porte un « Commandez maintenant ! » dessiné dessus, le réglage <strong>Où mène un clic sur la bannière ?</strong> décide vers quel produit ce clic conduit.</p>
+          </div>
+        </div>
+        <div class="pas-tuto">
+          <div class="rang">4</div>
+          <div>
+            <h3>Votre position sur la carte</h3>
+            <p>C'est l'étape la plus souvent oubliée, et celle qui rapporte le plus de clients. Sans position, vous n'apparaissez pas quand quelqu'un cherche <strong>près de moi</strong>, et personne ne peut lancer l'itinéraire vers chez vous. Elle se règle dans <span class="repere">Paramètres &amp; horaires</span>, bloc <strong>Position géographique</strong>, de deux façons.</p>
+            <ul>
+              <li><strong>Depuis votre local, c'est immédiat.</strong> Ouvrez votre espace sur le téléphone, en étant sur place, et touchez <span class="repere">Utiliser ma position actuelle</span>. Le navigateur demande l'autorisation : acceptez-la. La latitude et la longitude se remplissent seules.</li>
+              <li><strong>À distance, passez par Google Maps.</strong> Cherchez votre local sur la carte, faites un clic droit dessus (un appui long sur téléphone), puis touchez les chiffres qui apparaissent pour les copier. Collez-les dans Latitude et Longitude.</li>
+            </ul>
+            <p>Appuyez ensuite sur <span class="repere">Enregistrer la position</span>. Le lien <span class="repere">Vérifier sur Google Maps ↗</span> juste en dessous rouvre la carte à l'endroit enregistré : si la punaise ne tombe pas sur votre porte, c'est que les deux nombres ont été intervertis.</p>
+            <div class="encadre-note">
+              <p>En Haïti, la latitude est un nombre autour de <strong>18 ou 19</strong> et la longitude un nombre <strong>négatif</strong>, autour de −72. Une longitude positive place votre commerce en Asie. <span class="repere">Effacer</span> retire la position si vous préférez ne pas la publier : votre adresse écrite reste affichée.</p>
+            </div>
+          </div>
+        </div>
+      </div></div>
+
+      <h3 id="e4" style="margin-top:34px">Recevoir et traiter les commandes</h3>
+      <div class="carte mt"><div class="carte-corps">
+        <div class="pas-tuto">
+          <div class="rang">1</div>
+          <div>
+            <h3>Ouvrez la vente</h3>
+            <p>Dans <span class="repere">Livraison &amp; retrait</span>, cochez <span class="repere">Accepter les commandes en ligne</span>, puis le retrait sur place, la livraison, ou les deux. Indiquez vos horaires de retrait, votre délai de préparation, vos frais par défaut et vos zones de livraison avec leur tarif.</p>
+          </div>
+        </div>
+        <div class="pas-tuto">
+          <div class="rang">2</div>
+          <div>
+            <h3>Faites avancer chaque commande</h3>
+            <p>Dans <span class="repere">Commandes</span>, chaque commande porte un bouton qui la pousse à l'étape suivante : confirmée, en préparation, prête ou en route, puis livrée. Votre client reçoit un courriel à chaque étape, sans que vous ayez rien à écrire.</p>
+          </div>
+        </div>
+        <div class="pas-tuto">
+          <div class="rang">3</div>
+          <div>
+            <h3>Parlez à votre client en un clic</h3>
+            <p>Le petit bouton 💬 à côté de son numéro ouvre WhatsApp avec un message déjà écrit, où son nom, votre référence et le montant sont remplis. Vous composez ces messages une fois dans les paramètres, et vous les réutilisez toute l'année.</p>
+          </div>
+        </div>
+      </div></div>
+
+      <h3 id="e5" style="margin-top:34px">Encaisser et tenir vos comptes</h3>
+      <div class="carte mt"><div class="carte-corps">
+        <div class="pas-tuto">
+          <div class="rang">1</div>
+          <div>
+            <h3>Votre portefeuille</h3>
+            <p>Dans <span class="repere">Portefeuille &amp; Paiements</span>, le solde disponible est ce que vous pouvez retirer ; le bloqué correspond aux retraits en cours. L'historique indique, pour chaque encaissement, son type — commande, rendez-vous, séjour — son montant brut, la commission retenue et le net qui vous revient.</p>
+          </div>
+        </div>
+        <div class="pas-tuto">
+          <div class="rang">2</div>
+          <div>
+            <h3>Retirer votre argent</h3>
+            <p>Saisissez le montant, choisissez la méthode et donnez votre identifiant MonCash ou NatCash, puis <span class="repere">Demander le retrait</span>. Le minimum est de 1 000 HTG. Vérifiez votre identifiant avant de valider : un retrait envoyé au mauvais numéro ne se rattrape pas.</p>
+          </div>
+        </div>
+        <div class="pas-tuto">
+          <div class="rang">3</div>
+          <div>
+            <h3>La comptabilité se remplit seule</h3>
+            <p>Tout ce que Konekte encaisse pour vous arrive en <span class="repere">Comptabilité</span> sans ressaisie. Vous y ajoutez vos dépenses, et vous sortez un résultat mensuel ou un export pour votre comptable. Les ventes et les achats en espèces, eux, se saisissent à la main.</p>
+          </div>
+        </div>
+      </div></div>
+
+      <h3 id="e6" style="margin-top:34px">Vous faire connaître</h3>
+      <div class="grille mt" style="grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:14px">
+        <div class="panneau"><strong>📱 Votre code QR</strong>
+          <p class="petit muet" style="margin-top:4px">Dans « Code QR &amp; flyer », téléchargez-le au format SVG : il reste net de la carte de visite à l'affiche. Collez-le sur votre porte, votre comptoir, vos reçus.</p></div>
+        <div class="panneau"><strong>🔗 Votre lien public</strong>
+          <p class="petit muet" style="margin-top:4px">Le bandeau du tableau de bord le copie et le partage sur WhatsApp ou Facebook en un bouton. C'est cette adresse-là qu'il faut diffuser, pas une autre.</p></div>
+        <div class="panneau"><strong>🛒 La boutique commune</strong>
+          <p class="petit muet" style="margin-top:4px">Vos produits apparaissent aussi dans la boutique de la plateforme, où les acheteurs comparent tous les vendeurs. Vous n'avez rien à faire pour y être.</p></div>
+        <div class="panneau"><strong>⭐ Vos avis</strong>
+          <p class="petit muet" style="margin-top:4px">Après un achat, votre client peut vous noter. Les avis s'affichent sur votre page : ce sont eux qui décident un visiteur qui hésite.</p></div>
+      </div>
+
+      <h3 id="eq" style="margin-top:34px">Si quelque chose ne va pas</h3>
+      <details class="q-tuto"><summary>Mon lien d'activation n'est pas arrivé</summary>
+        <p>Regardez dans vos courriels indésirables. Ne recommencez pas l'inscription : une deuxième avec la même adresse email sera refusée. Écrivez-nous sur WhatsApp, nous activons le compte à la main.</p></details>
+      <details class="q-tuto"><summary>Une fonction est grisée ou absente de mon menu</summary>
+        <p>Deux raisons possibles. Soit votre type d'activité ne la comprend pas : changez-le dans Paramètres si vous vous êtes trompé à l'inscription. Soit votre forfait ne l'ouvre pas encore : la page Mon abonnement indique ce que chaque formule ajoute.</p></details>
+      <details class="q-tuto"><summary>Je veux choisir — ou refuser — certains moyens de paiement</summary>
+        <p>Tout se règle dans <strong>Livraison &amp; retrait</strong>. Quatre canaux, indépendants les uns des autres : le paiement en ligne par la passerelle, le paiement à la livraison ou au retrait, le virement direct sur vos comptes, et — si vous l'avez déclarée — votre propre passerelle. Décochez ce que vous ne voulez pas : décocher « Paiement en ligne par la passerelle » coupe net l'encaissement par Konekte, et vos clients ne verront plus cette option.</p>
+        <p>Vous choisissez aussi les <strong>portefeuilles acceptés</strong> : MonCash, NatCash, Kashpaw. Laissez-les tous cochés et le client choisit lui-même ; n'en gardez qu'un et c'est celui-là qui s'ouvrira. Une seule règle : il doit rester au moins un moyen de payer, sinon personne ne peut commander.</p></details>
+      <details class="q-tuto"><summary>Je veux être payé sur mon propre MonCash ou mon compte en banque</summary>
+        <p>C'est possible, et sans commission : l'argent va directement chez vous, vous ne payez que votre abonnement. Dans <strong>Portefeuille &amp; Paiements</strong>, bloc « Encaisser sur vos propres comptes », déclarez vos numéros MonCash, NatCash ou votre compte bancaire, puis cochez « Proposer le virement direct à mes clients ». Vos coordonnées s'affichent alors au moment de payer : le client vous envoie l'argent, inscrit la référence de sa transaction, et vous confirmez l'avoir reçue d'un bouton. Rien n'est vérifié automatiquement — c'est vous qui regardez votre compte, et c'est voulu : seule votre banque sait si l'argent est arrivé.</p>
+        <p>Si vous avez un <strong>compte marchand</strong> ailleurs, le même bloc l'accueille, quel qu'il soit. Trois fournisseurs : <strong>PLOP PLOP</strong>, automatique de bout en bout ; <strong>Autre passerelle (API)</strong>, pour n'importe quel prestataire qui parle JSON — vous donnez ses deux adresses et dites où lire sa réponse ; et <strong>Lien de paiement</strong>, pour MonCash Business, PayPal, Stripe ou tout service sans interface : vous collez votre lien, le client paie dessus, et vous confirmez après avoir vu l'argent. Dans tous les cas, l'encaissement va droit sur votre compte et aucune commission n'est retenue. Vos clés secrètes sont chiffrées et ne vous seront jamais réaffichées — seuls leurs quatre derniers caractères apparaissent, pour que vous les reconnaissiez.</p></details>
+      <details class="q-tuto"><summary>Un client a payé mais mon portefeuille affiche zéro</summary>
+        <p>Regardez la colonne Statut de l'historique : un règlement « En attente » a été ouvert chez la passerelle mais pas encore confirmé chez nous — c'est le cas quand le client ferme sa page avant la fin, ou perd sa connexion au retour. L'argent n'est pas perdu. La plateforme confronte ces règlements à la passerelle toutes les heures et crédite automatiquement ce qui a bien été payé ; le bouton <strong>Vérifier maintenant</strong>, dans votre portefeuille, le fait sans attendre. La commande correspondante passe alors payée et le stock est décompté.</p></details>
+      <details class="q-tuto"><summary>La date d'arrivée d'un produit « bientôt disponible » est passée</summary>
+        <p>Elle ne le reste pas : le jour annoncé, le produit passe en vente tout seul et vous recevez une notification. Vous n'avez rien à surveiller. Deux cas ensuite. Si son stock était renseigné, il est achetable immédiatement. S'il était à zéro, vos clients le voient « Fini » — la date est arrivée, mais nous ne pouvons pas deviner combien d'unités vous avez reçues : votre Catalogue affiche alors un bandeau avec le bouton <strong>Indiquer la quantité reçue</strong>, et le produit redevient achetable aussitôt. Si la marchandise prend du retard, ouvrez la fiche du produit et donnez une nouvelle date : l'annonce repart de là.</p></details>
+      <details class="q-tuto"><summary>Le bouton « Acheter » n'apparaît pas sur ma page</summary>
+        <p>Vos visiteurs voient « Commander », qui ouvre WhatsApp, au lieu du panier. Deux causes possibles, et le Catalogue vous dit laquelle. Soit les réglages manquent : dans Livraison &amp; retrait, cochez « Accepter les commandes en ligne », puis le retrait sur place, la livraison, ou les deux — l'un des deux au minimum, sinon personne ne saurait où prendre sa commande. Soit votre forfait Découverte ne comprend pas la vente en ligne : il donne la commande par WhatsApp, et le forfait Pro ajoute le panier, le suivi et le paiement en ligne.</p></details>
+      <details class="q-tuto"><summary>Je n'apparais pas dans « près de moi »</summary>
+        <p>Cette recherche classe les entreprises par distance : sans coordonnées, la vôtre n'a pas de distance et reste de côté. Ouvrez Paramètres &amp; horaires, bloc Position géographique, et enregistrez votre position — depuis votre local avec « Utiliser ma position actuelle », ou en collant les coordonnées copiées sur Google Maps. Une adresse écrite ne suffit pas : c'est la latitude et la longitude qui sont utilisées.</p></details>
+      <details class="q-tuto"><summary>Ma punaise tombe au mauvais endroit</summary>
+        <p>Vérifiez l'ordre des deux nombres. En Haïti la latitude tourne autour de 18 ou 19, et la longitude est négative, autour de −72. Le lien « Vérifier sur Google Maps » sous les deux champs montre tout de suite où vous êtes placé.</p></details>
+      <details class="q-tuto"><summary>Mon établissement ne ferme jamais</summary>
+        <p>Dans Paramètres &amp; horaires, le bouton « Ouvert 24 h/24, 7 j/7 » remplit la grille d'un coup, de 00:00 à 23:59 sur les sept jours ; il reste à appuyer sur Enregistrer les horaires. Le calendrier affiche alors les vingt-quatre heures, et une arrivée à 2h du matin s'y voit comme les autres. L'heure d'arrivée et l'heure de départ de l'hôtel, elles, se règlent librement dans Politiques de l'établissement : n'importe quelle heure est acceptée, y compris après minuit.</p></details>
+      <details class="q-tuto"><summary>Mes clients ne voient pas mes modifications</summary>
+        <p>Vérifiez d'abord que vous avez appuyé sur Enregistrer. Si c'est fait, demandez-leur de rouvrir la page : un téléphone garde parfois en mémoire la version précédente quelques minutes.</p></details>
+      <details class="q-tuto"><summary>Je veux arrêter</summary>
+        <p>La résiliation se fait depuis votre espace, à tout moment. Rien n'est dû si elle intervient avant la fin des 30 jours gratuits. Téléchargez votre sauvegarde avant de partir : vos données ne sont pas conservées après la fermeture.</p></details>
+    </div>
+
+    <div class="carte mt" style="background:linear-gradient(120deg,var(--marine),#1D3A6E);border:none;margin-top:40px">
+      <div class="carte-corps centre" style="padding:38px 24px;color:#fff">
+        <h2 style="color:#fff;font-size:24px" data-i18n="tu.aide.titre">Vous ne trouvez pas votre réponse ?</h2>
+        <p style="color:#B9C6E4;max-width:54ch;margin:10px auto 22px" data-i18n="tu.aide.texte">Écrivez-nous sur WhatsApp, nous répondons dans la journée. Dites-nous simplement ce que vous essayiez de faire.</p>
+        <div class="flex" style="gap:10px;justify-content:center;flex-wrap:wrap">
+          <a class="btn btn-succes btn-large" href="https://wa.me/15142261860" target="_blank" rel="noopener" data-i18n="tu.aide.wa">💬 Support WhatsApp</a>
+          <a class="btn btn-contour btn-large" style="color:#fff;border-color:rgba(255,255,255,.5)" href="/question.html" data-i18n="tu.aide.q">Poser une question</a>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer class="pied-riche" style="margin-top:56px">
+  <div class="conteneur">
+    <div class="pied-bas">
+      <p class="petit">© 2026 <strong>KONEKTE</strong> — <span data-i18n="pied.droits">Tous droits réservés.</span></p>
+      <p class="petit"><a href="/mes-achats.html">Mes achats</a> · <a href="/recu.html">Mon reçu</a> · <a href="/confidentialite.html">Confidentialité</a></p>
+      <p class="petit" data-i18n="pied.concu">Conçu en Haïti 💙 pour les entreprises haïtiennes.</p>
+    </div>
+  </div>
+</footer>
+
+<script>
+/* Le public choisi est retenu : quelqu'un qui revient sur le tutoriel
+   retrouve la partie qui le concerne, sans rechoisir. */
+function choisirPublic(qui){
+  document.querySelectorAll('.onglet-public').forEach(b =>
+    b.classList.toggle('on', b.dataset.public === qui));
+  document.getElementById('bloc-client').classList.toggle('visible', qui === 'client');
+  document.getElementById('bloc-entreprise').classList.toggle('visible', qui === 'entreprise');
+  try { localStorage.setItem('tutoriel-public', qui); } catch {}
+}
+
+/* Au chargement : le public retenu, ou celui demandé par l'adresse
+   (/tutoriel.html?pour=entreprise), pour qu'un lien puisse pointer
+   directement sur la bonne moitié. */
+(function(){
+  let qui = 'client';
+  try { qui = localStorage.getItem('tutoriel-public') || 'client'; } catch {}
+  const demande = new URLSearchParams(location.search).get('pour');
+  if (demande === 'entreprise' || demande === 'client') qui = demande;
+  if (qui === 'entreprise') choisirPublic('entreprise');
+  // Une ancre dans l'adresse décide aussi : #e3 concerne les entreprises
+  if (/^#e/.test(location.hash)) choisirPublic('entreprise');
+})();
+</script>
+</body>
+</html>

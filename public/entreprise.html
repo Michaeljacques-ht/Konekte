@@ -1,0 +1,2142 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Entreprise — Konekte</title>
+<link rel="icon" href="/favicon.ico" sizes="any">
+<link rel="icon" type="image/png" sizes="192x192" href="/icone-192.png">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<meta name="theme-color" content="#0B2C6B">
+<link rel="stylesheet" href="/style.css">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<script defer src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<style>
+:root { --marque: #2563EB; --marque2: #F59E0B; }
+/* Bannière : hauteur proportionnelle à la largeur, bornée.
+   Une hauteur fixe rognait l'image sur grand écran et laissait
+   trop peu de place à la vitrine de l'entreprise. */
+.banniere-ent { height: clamp(260px, 32vw, 380px);
+  background: linear-gradient(130deg, var(--marque), var(--marque2)); position: relative; }
+@media (max-width: 560px) { .banniere-ent { height: clamp(200px, 46vw, 260px); } }
+/* Bannière personnalisée : l'image entière, jamais rognée.
+   Avec `cover`, le haut et le bas de l'affiche — le nom de la boutique,
+   la rangée d'arguments — étaient coupés hors cadre. La bannière prend
+   donc la hauteur que l'image demande, et s'étend vers le bas. */
+/* `isolation: isolate` confine l'empilement a l'interieur de la banniere.
+   Sans cela, l'affiche (z-index 1, pour passer devant son propre fond
+   floute) se peignait aussi devant la fiche de l'entreprise et lui
+   barrait le nom dans la zone de chevauchement. */
+.banniere-ent.photo { height: auto; display: grid; place-items: center; overflow: hidden;
+  isolation: isolate; }
+/* L'espace laissé autour de l'affiche est rempli par l'affiche elle-même,
+   agrandie et floutée : les couleurs se prolongent au lieu de laisser des
+   bandes qui ressembleraient à un oubli. */
+.banniere-ent.photo::before { content: ''; position: absolute; inset: -24px;
+  background: var(--affiche) center/cover no-repeat; filter: blur(26px) saturate(1.15);
+  opacity: .9; z-index: 0; }
+/* Hauteur bornée à 58 % de l'écran. Pleine largeur, l'affiche occupait
+   tout le premier écran et les produits restaient hors de vue : il
+   fallait faire défiler pour savoir ce que la boutique vend. L'affiche
+   reste entière — jamais rognée — simplement plus petite. */
+.img-banniere { display: block; width: 100%; max-width: 1100px; max-height: 58vh;
+  object-fit: contain; margin: 0 auto; position: relative; z-index: 1; }
+/* Avec une affiche, la fiche ne chevauche pas la bannière : elle en
+   masquerait le bas, c'est-à-dire ce que l'entreprise y a écrit. */
+/* Les cartes mordent legerement sur le bas de l'affiche, comme elles le
+   font deja sur la banniere en degrade : juste assez pour qu'il n'y ait
+   pas de vide entre les deux, pas au point de masquer ce que
+   l'entreprise y a compose. */
+.entete-ent.posee { margin-top: -52px; }
+/* Largeur de la fiche d'entreprise et du corps de page.
+   980px laissait deux bandes vides de part et d'autre sur un écran
+   d'ordinateur, et ne tenait que deux produits par ligne. */
+.entete-ent { max-width: 1180px; margin: -64px auto 0; padding: 0 20px; position: relative; }
+.carte-entete { background: #fff; border-radius: 18px; box-shadow: 0 10px 34px rgba(16,24,40,.12);
+  padding: 22px; display: flex; gap: 18px; flex-wrap: wrap; align-items: flex-start; }
+.carte-entete > div:nth-child(2) { flex: 1; min-width: 180px; }
+.bloc-actions { display: grid; gap: 8px; }
+.actions-ent { display: grid; gap: 8px; }
+/* Sur téléphone, « Acheter » et « WhatsApp » tiennent côte à côte :
+   empilés sur toute la largeur, ils repoussaient les produits hors de
+   l'écran. */
+@media (max-width: 560px) {
+  .bloc-actions { width: 100%; }
+  .actions-ent { grid-template-columns: 1fr 1fr; }
+  .actions-ent .btn { padding-left: 8px; padding-right: 8px; }
+}
+/* Cadre du logo : dimensions fixes et rognage strict.
+   Sans overflow:hidden, une image verticale déborde et passe
+   par-dessus les boutons voisins. */
+.logo-ent { width: 84px; height: 84px; min-width: 84px; min-height: 84px;
+  border-radius: 18px; background: var(--marque); color: #fff;
+  display: grid; place-items: center; font-size: 30px; font-weight: 800;
+  flex-shrink: 0; overflow: hidden; position: relative; }
+.logo-ent img { width: 100%; height: 100%; object-fit: cover; object-position: center;
+  display: block; border-radius: inherit; }
+@media (max-width: 560px) {
+  .logo-ent { width: 68px; height: 68px; min-width: 68px; min-height: 68px;
+    border-radius: 15px; font-size: 25px; }
+}
+/* `position: relative` est indispensable depuis que le corps remonte sur
+   l'affiche : la banniere est elle-meme positionnee, et sans cela elle se
+   peignait par-dessus, tranchant le haut des cartes. */
+.corps-page { max-width: 1180px; margin: 26px auto 60px; padding: 0 20px; display: grid; grid-template-columns: 1.62fr 1fr; gap: 22px; align-items: start; position: relative; z-index: 1; }
+@media (max-width: 860px) { .corps-page { grid-template-columns: 1fr; } }
+.ligne-service { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 14px 0; border-bottom: 1px solid var(--bordure); }
+.ligne-service:last-child { border-bottom: none; }
+.etapes-resa { display: flex; gap: 6px; margin-bottom: 18px; }
+.etapes-resa .pas { flex: 1; height: 5px; border-radius: 99px; background: var(--bordure); }
+.etapes-resa .pas.fait { background: var(--marque); }
+.creneaux { display: grid; grid-template-columns: repeat(auto-fill, minmax(78px, 1fr)); gap: 8px; margin-top: 12px; }
+.creneau { padding: 9px 4px; border: 1px solid var(--bordure); border-radius: 9px; background: #fff; cursor: pointer; font: inherit; font-size: 13.5px; font-weight: 600; text-align: center; }
+.creneau:hover { border-color: var(--marque); }
+.creneau.choisi { background: var(--marque); color: #fff; border-color: var(--marque); }
+.recap { background: var(--gris-clair); border-radius: 12px; padding: 14px 16px; font-size: 14px; }
+.recap div { display: flex; justify-content: space-between; padding: 3px 0; }
+.horaires-liste div { display: flex; justify-content: space-between; padding: 4px 0; font-size: 13.5px; }
+.ico-partage { width: 18px; height: 18px; object-fit: contain; vertical-align: middle; display: block; }
+.rang-partage { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center;
+  align-items: center; width: 100%; }
+.puces-equip { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 7px; }
+.puce-equip { display: inline-flex; align-items: center; gap: 5px; background: var(--bleu-clair); color: var(--marine); border-radius: 99px; padding: 3px 11px; font-size: 12px; font-weight: 700; }
+.onglets-menu { display: flex; gap: 7px; flex-wrap: wrap; }
+.onglet-menu { border: 1.5px solid var(--bordure); background: #fff; border-radius: var(--r-pilule); padding: 7px 14px; font: inherit; font-size: 13px; font-weight: 700; color: var(--texte); cursor: pointer; }
+.onglet-menu:hover { border-color: var(--bleu); background: var(--bleu-clair); }
+.onglet-menu.on { background: var(--degrade); border-color: transparent; color: #fff; }
+.ligne-menu { display: flex; gap: 12px; padding: 11px 0; border-bottom: 1px solid var(--bordure); align-items: flex-start; }
+.ligne-menu:last-child { border-bottom: none; }
+.prix-menu { font-weight: 800; color: var(--marine); white-space: nowrap; }
+.badge-resort { background: linear-gradient(90deg, #0B2C6B, #F26B21); color: #fff; letter-spacing: .06em; }
+.puce-inclus { display: inline-flex; align-items: center; gap: 5px; background: var(--orange-fond); color: #C4520E; border-radius: 99px; padding: 4px 12px; font-size: 12.5px; font-weight: 700; }
+.mention-inclus { display: inline-block; background: var(--orange-fond); color: #C4520E; border-radius: 99px; padding: 3px 11px; font-size: 12px; font-weight: 700; }
+.ligne-info { display: flex; justify-content: space-between; gap: 14px; padding: 7px 0; border-bottom: 1px solid var(--bordure); }
+.ligne-info:last-child { border-bottom: none; }
+.etapes-suivi { display: grid; gap: 4px; margin-top: 12px; }
+.etape-suivi { display: flex; align-items: center; gap: 10px; padding: 5px 0; opacity: .45; }
+.etape-suivi.faite, .etape-suivi.active { opacity: 1; }
+.etape-suivi .pastille { width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; font-size: 12px; font-weight: 800; background: var(--gris-clair); color: var(--gris); flex: none; }
+.etape-suivi.faite .pastille { background: var(--vert-fond); color: #07684A; }
+.etape-suivi.active .pastille { background: var(--marque, var(--bleu)); color: #fff; }
+.etape-suivi.active span:last-child { font-weight: 700; color: var(--encre); }
+.bloc-urgence { background: linear-gradient(135deg, #B3261E 0%, #D93025 60%, #E8523F 100%); color: #fff; border-radius: var(--r-carte); padding: 20px 22px; margin-bottom: 22px; box-shadow: 0 12px 30px rgba(179,38,30,.28); }
+.bloc-urgence .badge { background: rgba(255,255,255,.22); color: #fff; }
+.bloc-urgence .badge-vert { background: rgba(255,255,255,.9); color: #07684A; }
+.actions-urgence { display: flex; gap: 9px; flex-wrap: wrap; }
+.btn-urgence { display: block; background: #fff; color: #B3261E; border-radius: var(--r-champ); padding: 12px 18px; font-weight: 700; font-size: 14px; text-align: center; line-height: 1.35; text-decoration: none; box-shadow: 0 4px 14px rgba(0,0,0,.16); }
+.btn-urgence:hover { text-decoration: none; transform: translateY(-1px); color: #B3261E; }
+.btn-urgence.secondaire { background: rgba(255,255,255,.16); color: #fff; border: 1.5px solid rgba(255,255,255,.5); box-shadow: none; }
+.btn-urgence.secondaire:hover { background: rgba(255,255,255,.26); color: #fff; }
+.puces-urgence { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 7px; }
+.puce-urgence { background: rgba(255,255,255,.18); border-radius: 99px; padding: 3px 11px; font-size: 12.5px; font-weight: 600; }
+.avert-urgence { margin-top: 14px; padding-top: 12px; border-top: 1px solid rgba(255,255,255,.28); font-size: 12.5px; opacity: .95; }
+@media (max-width: 620px) { .actions-urgence { width: 100%; } .btn-urgence { flex: 1; min-width: 140px; } }
+/* Deux colonnes dès le téléphone : une carte pleine largeur étire
+   l'image et fait paraître la fiche disproportionnée. */
+/* Deux produits par ligne sur téléphone, trois dès la tablette.
+   Un nombre fixe de colonnes — et non auto-fill — garantit la
+   troisième colonne : avec une largeur minimale, la grille
+   retombait à deux dès que la colonne se resserrait. */
+.grille-produits { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+@media (min-width: 640px) { .grille-produits { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; } }
+/* Entre 861 et 1060px la page passe à deux colonnes : le catalogue
+   n'a plus la largeur pour trois produits lisibles, on revient à
+   deux le temps de cette bande. */
+@media (min-width: 861px) and (max-width: 1059px) {
+  .grille-produits { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+.carte-produit { border: 1px solid var(--bordure); border-radius: 14px; overflow: hidden;
+  background: #fff; display: flex; flex-direction: column;
+  transition: box-shadow .15s, transform .15s; }
+.carte-produit:hover { box-shadow: var(--ombre); transform: translateY(-2px); }
+
+/* Zone média à proportions fixes : l'image garde sa forme quelle que
+   soit la largeur de la carte, et la fiche ne s'allonge jamais. */
+.media-produit { position: relative; aspect-ratio: 4 / 3; background: var(--gris-clair); overflow: hidden; }
+.media-produit .vue { position: absolute; inset: 0; background-size: cover; background-position: center;
+  opacity: 0; transition: opacity .25s; }
+.media-produit .vue.on { opacity: 1; }
+.media-produit.sans { display: grid; place-items: center; font-size: 30px; opacity: .35; }
+
+/* Pastilles de défilement, seulement s'il y a plusieurs vues */
+.points-produit { position: absolute; left: 0; right: 0; bottom: 6px; display: flex;
+  justify-content: center; gap: 4px; z-index: 2; }
+.points-produit button { width: 6px; height: 6px; padding: 0; border: 0; border-radius: 50%;
+  background: rgba(255,255,255,.55); cursor: pointer; box-shadow: 0 1px 3px rgba(0,0,0,.3); }
+.points-produit button.on { background: #fff; width: 16px; border-radius: 3px; }
+
+.badge-video { position: absolute; left: 7px; top: 7px; z-index: 2; background: rgba(0,0,0,.6);
+  color: #fff; border: 0; border-radius: 99px; padding: 3px 9px; font-size: 11px; font-weight: 700;
+  cursor: pointer; display: flex; align-items: center; gap: 4px; }
+.badge-video:hover { background: rgba(0,0,0,.8); }
+
+.corps-produit { padding: 10px 11px 12px; display: flex; flex-direction: column; flex: 1; gap: 2px; }
+.corps-produit strong { font-size: 13.6px; line-height: 1.3; color: var(--marine); }
+/* Description bornée à deux lignes : les fiches gardent la même hauteur */
+.desc-produit { font-size: 12px; color: var(--gris); line-height: 1.35;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.prix-produit { margin-top: auto; padding-top: 7px; font-size: 14.5px; color: var(--marine); }
+
+/* Visionneuse plein écran */
+.visionneuse { position: fixed; inset: 0; z-index: 200; background: rgba(8,16,32,.94);
+  display: grid; grid-template-rows: 1fr auto; padding: 16px; }
+.visionneuse .scene { display: grid; place-items: center; overflow: hidden; }
+.visionneuse img, .visionneuse iframe { max-width: 94vw; max-height: 72vh; border-radius: 12px; display: block; }
+.visionneuse iframe { width: min(94vw, 720px); aspect-ratio: 16/9; height: auto; border: 0; }
+.visionneuse .vignettes { display: flex; gap: 7px; justify-content: center; flex-wrap: wrap; padding-top: 12px; }
+.visionneuse .vignettes button { width: 54px; height: 42px; border-radius: 7px; border: 2px solid transparent;
+  background-size: cover; background-position: center; cursor: pointer; padding: 0; }
+.visionneuse .vignettes button.on { border-color: var(--orange); }
+.visionneuse .fermer { position: absolute; top: 12px; right: 14px; background: rgba(255,255,255,.14);
+  border: 0; color: #fff; width: 38px; height: 38px; border-radius: 50%; font-size: 17px; cursor: pointer; }
+.bulle-panier { position: fixed; bottom: 20px; right: 20px; z-index: 90; background: var(--degrade); color: #fff; border: 0; border-radius: 99px; padding: 14px 22px; font: inherit; font-weight: 700; font-size: 15px; cursor: pointer; box-shadow: 0 10px 28px rgba(11,44,107,.32); }
+.bulle-panier:hover { transform: translateY(-2px); }
+.ligne-panier { display: flex; align-items: center; gap: 10px; padding: 10px 0; border-bottom: 1px solid var(--bordure); }
+.ligne-panier:last-child { border-bottom: none; }
+.qte-panier { display: flex; align-items: center; gap: 6px; }
+.qte-panier button { width: 28px; height: 28px; border-radius: 8px; border: 1.5px solid var(--bordure); background: #fff; font-weight: 800; cursor: pointer; font-family: inherit; }
+.qte-panier button:hover { border-color: var(--bleu); }
+.recap { background: var(--gris-clair); border-radius: var(--r-champ); padding: 12px 14px; }
+.recap div { display: flex; justify-content: space-between; padding: 3px 0; font-size: 14px; }
+.recap .total { border-top: 1px solid var(--bordure); margin-top: 6px; padding-top: 8px; font-weight: 800; font-size: 16px; color: var(--marine); }
+.galerie-pub { display: flex; gap: 6px; overflow-x: auto; margin-top: 8px; padding-bottom: 4px; }
+.galerie-pub img { width: 92px; height: 68px; object-fit: cover; border-radius: 8px; flex: none; cursor: zoom-in; border: 2px solid transparent; }
+.galerie-pub img:hover { border-color: var(--bleu); }
+.barre-install { position: fixed; left: 12px; right: 12px; bottom: 12px; z-index: 80;
+  background: #fff; border: 1px solid var(--bordure); border-radius: 16px; padding: 12px 14px;
+  box-shadow: 0 12px 34px rgba(11,44,107,.20); display: flex; align-items: center; gap: 12px;
+  max-width: 520px; margin: 0 auto; }
+.barre-install .bi-ico { width: 42px; height: 42px; border-radius: 12px; background: var(--bleu-clair);
+  display: grid; place-items: center; flex: none; }
+.bi-txt { flex: 1; min-width: 0; }
+.bi-txt strong { display: block; font-size: 14px; color: var(--marine); }
+.bi-txt span { font-size: 12.3px; color: var(--gris); line-height: 1.35; display: block; }
+.bi-fermer { border: 0; background: none; color: var(--gris); font-size: 16px; cursor: pointer;
+  padding: 4px; line-height: 1; flex: none; }
+.bi-fermer:hover { color: var(--marine); }
+@media (max-width: 480px) { .bi-txt span { display: none; } }
+.carte-produit { position: relative; }
+.part-produit { position: absolute; top: 8px; right: 8px; width: 30px; height: 30px;
+  border-radius: 9px; border: 0; background: rgba(255,255,255,.92); cursor: pointer;
+  font-size: 14px; line-height: 1; box-shadow: 0 2px 8px rgba(16,24,40,.14);
+  opacity: 0; transition: opacity .15s, transform .15s; z-index: 2; }
+.carte-produit:hover .part-produit { opacity: 1; }
+.part-produit:hover { transform: scale(1.08); background: #fff; }
+@media (hover: none) { .part-produit { opacity: 1; } }
+.carte-produit.mise-en-avant { border-color: var(--bleu); box-shadow: 0 0 0 3px rgba(37,99,235,.18); }
+/* Liens de l'entreprise, distincts des boutons de partage */
+.reseaux-ent { display: flex; gap: 8px; flex-wrap: wrap; width: 100%;
+  padding-bottom: 12px; margin-bottom: 4px; border-bottom: 1px solid var(--bordure); }
+.lien-reseau { width: 40px; height: 40px; border-radius: 50%; display: grid; place-items: center;
+  font-size: 19px; background: var(--gris-clair); text-decoration: none; overflow: hidden;
+  transition: transform .14s, background .14s; }
+.lien-reseau img { width: 40px; height: 40px; border-radius: 50%; display: block; }
+.lien-reseau:hover { transform: translateY(-2px); text-decoration: none; }
+.lien-reseau.facebook:hover { background: #E7F0FE; }
+.lien-reseau.instagram:hover { background: #FDE9F3; }
+.lien-reseau.whatsapp:hover { background: var(--vert-fond); }
+.lien-reseau.youtube:hover, .lien-reseau.tiktok:hover { background: #FDEBEB; }
+.lien-reseau.site:hover, .lien-reseau.linkedin:hover { background: var(--bleu-clair); }
+/* Ligne de service avec photo : la vignette précède le texte,
+   sans allonger la ligne ni bousculer les services sans image. */
+.ligne-service.avec-photo { align-items: center; gap: 12px; }
+.photo-service { width: 64px; height: 64px; border-radius: 12px; border: 0; padding: 0;
+  background-size: cover; background-position: center; background-color: var(--gris-clair);
+  flex: none; cursor: pointer; position: relative; transition: transform .14s; }
+.photo-service:hover { transform: scale(1.04); }
+.compte-photos { position: absolute; right: 4px; bottom: 4px; background: rgba(0,0,0,.65);
+  color: #fff; border-radius: 99px; padding: 1px 7px; font-size: 10.5px; font-weight: 700; }
+.info-service { flex: 1; min-width: 0; }
+.desc-service { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+  overflow: hidden; margin: 2px 0; }
+.prix-service { display: flex; align-items: center; gap: 10px; flex: none; }
+@media (max-width: 420px) {
+  .photo-service { width: 54px; height: 54px; border-radius: 10px; }
+  .prix-service { flex-direction: column; align-items: flex-end; gap: 5px; }
+}
+/* État du stock, lisible d'un coup d'œil */
+.etat-stock { font-size: 11.5px; font-weight: 800; margin: 3px 0 0; }
+.etat-stock.dispo { color: var(--vert); }
+.etat-stock.bientot { color: var(--orange); }
+.etat-stock.fini { color: var(--gris); }
+.etat-stock.avenir { color: #7C3AED; }
+/* Un produit fini reste visible mais recule visuellement */
+.carte-produit.epuise .media-produit { filter: grayscale(.75); opacity: .62; }
+.carte-produit.epuise { border-style: dashed; }
+.carte-produit.epuise .media-produit::after { content: 'FINI'; position: absolute; inset: 0;
+  display: grid; place-items: center; font-size: 15px; font-weight: 800; color: #fff;
+  background: rgba(16,24,40,.45); letter-spacing: .08em; }
+/* Produit annoncé avant son arrivée : il attire l'œil au lieu de
+   l'éteindre — c'est une promesse, pas une déception. */
+.carte-produit.avenir { border-color: #DDD0FB; background: #FCFAFF; }
+.ruban-avenir { position: absolute; left: 0; right: 0; bottom: 0; padding: 5px 8px;
+  text-align: center; font-size: 11.5px; font-weight: 800; color: #fff;
+  background: rgba(109,40,217,.88); letter-spacing: .03em; z-index: 2; }
+.btn-precommande { width: 100%; margin-top: 8px; background: #6D28D9; color: #fff;
+  border: 0; border-radius: var(--r-pilule); padding: 9px 12px;
+  font-size: 13px; font-weight: 800; cursor: pointer; }
+.btn-precommande:hover { background: #5B21B6; }
+/* Paiement par versement : proposé en second, sous le bouton d'achat,
+   pour ne pas détourner de l'achat direct. */
+.btn-versement { display: block; width: 100%; margin-top: 7px; padding: 7px 10px;
+  text-align: center; font-size: 12px; font-weight: 700; border-radius: var(--r-pilule);
+  background: #FFF4EC; color: #C4520E; border: 1.5px dashed #F7C9A8; text-decoration: none; }
+.btn-versement:hover { background: #FFE9D8; text-decoration: none; }
+
+/* ============================================================
+   Fiche d'un produit
+   ------------------------------------------------------------
+   Cliquer un produit ouvrait jusqu'ici la seule galerie de
+   photos : le client voyait le produit sans jamais lire ce
+   qu'il devait savoir pour l'acheter. La fiche rassemble tout
+   au même endroit — photos, prix, état du stock, quantité et
+   le bouton d'achat — pour qu'une décision soit possible sans
+   revenir au catalogue.
+   ============================================================ */
+.carte-produit { cursor: pointer; }
+.fiche-prod { display: grid; grid-template-columns: 1.04fr 1fr; gap: 22px; align-items: start; }
+@media (max-width: 680px) { .fiche-prod { grid-template-columns: 1fr; gap: 16px; } }
+.fp-media { position: relative; aspect-ratio: 4 / 3; border-radius: 14px; overflow: hidden;
+  background: var(--gris-clair); cursor: zoom-in; }
+/* La photo entière, sans rognage : sur la fiche, le client veut voir
+   le produit en entier, pas un cadrage qui lui coupe un bout. */
+.fp-media img { width: 100%; height: 100%; object-fit: contain; display: block; background: #fff; }
+.fp-media.sans { display: grid; place-items: center; font-size: 42px; opacity: .35; cursor: default; }
+.fp-loupe { position: absolute; right: 8px; bottom: 8px; background: rgba(16,24,40,.62); color: #fff;
+  border-radius: 99px; padding: 3px 10px; font-size: 11.5px; font-weight: 700; pointer-events: none; }
+.fp-vignettes { display: flex; gap: 7px; flex-wrap: wrap; margin-top: 9px; }
+.fp-vignettes button { width: 56px; height: 44px; border-radius: 9px; border: 2px solid var(--bordure);
+  background-size: cover; background-position: center; padding: 0; cursor: pointer; background-color: var(--gris-clair); }
+.fp-vignettes button.on { border-color: var(--marque, var(--bleu)); }
+.fp-titre { font-size: 20px; line-height: 1.25; color: var(--marine); margin: 0; }
+.fp-puces { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.fp-prix { font-size: 25px; font-weight: 800; color: var(--marine); margin-top: 12px; line-height: 1.15; }
+.fp-prix s { font-size: 15px; font-weight: 600; color: var(--gris); margin-right: 8px; }
+.fp-prix .unite { font-size: 13px; font-weight: 600; color: var(--gris); }
+.fp-eco { display: inline-block; margin-top: 5px; background: var(--vert-fond); color: #07684A;
+  border-radius: 99px; padding: 3px 11px; font-size: 12px; font-weight: 800; }
+/* Description entière, sans troncature : c'est ici qu'on la lit */
+.fp-desc { font-size: 14px; line-height: 1.55; color: var(--texte); margin-top: 12px; white-space: pre-wrap; }
+.fp-faits { margin-top: 14px; border-top: 1px solid var(--bordure); }
+.fp-faits div { display: flex; justify-content: space-between; gap: 14px; padding: 7px 0;
+  border-bottom: 1px solid var(--bordure); font-size: 13.5px; }
+.fp-faits span:first-child { color: var(--gris); }
+.fp-faits span:last-child { font-weight: 700; color: var(--marine); text-align: right; }
+.fp-qte { display: flex; align-items: center; gap: 10px; margin-top: 16px; }
+.fp-qte label { margin: 0; font-size: 13.5px; }
+.fp-qte .boite { display: flex; align-items: center; gap: 4px; border: 1.5px solid var(--bordure);
+  border-radius: var(--r-champ); padding: 3px; }
+.fp-qte button { width: 32px; height: 32px; border: 0; border-radius: 8px; background: var(--gris-clair);
+  font: inherit; font-weight: 800; font-size: 16px; cursor: pointer; color: var(--marine); }
+.fp-qte button:hover { background: var(--bleu-clair); }
+.fp-qte strong { min-width: 30px; text-align: center; font-size: 15px; }
+.fp-actions { margin-top: 16px; display: grid; gap: 8px; }
+.fp-actions .btn { width: 100%; }
+.fp-ferme { position: absolute; top: 12px; right: 14px; width: 34px; height: 34px; border-radius: 50%;
+  border: 0; background: var(--gris-clair); color: var(--marine); font-size: 16px; cursor: pointer; }
+.fp-ferme:hover { background: var(--bleu-clair); }
+.modale.fiche { position: relative; }
+</style>
+</head>
+<body>
+
+<nav class="nav">
+  <div class="conteneur nav-int">
+    <a class="logo" href="/"><img src="/logo-marque.png" alt="" style="height:34px;width:auto">Konekte</a>
+    <div class="nav-droite">
+      <a class="btn btn-fantome" href="/">← Retour à l'accueil</a>
+    </div>
+  </div>
+</nav>
+
+<div class="banniere-ent"></div>
+<div class="entete-ent">
+  <div class="carte-entete" id="entete"></div>
+</div>
+
+<main class="corps-page">
+  <div id="bandeauUrgence" style="display:none"></div>
+  <div style="display:grid;gap:22px">
+    <section class="carte" id="carteServices"><div class="carte-corps">
+      <h2 style="font-size:19px" id="titreOffre" data-i18n="ent.services">Services</h2>
+      <p class="petit muet" id="introOffre" style="margin-top:4px;display:none"></p>
+      <div id="listeServices" class="mt"></div>
+      <div id="rayonsBoutique" class="onglets-menu mt" style="display:none"></div>
+      <div id="grilleProduits" class="grille-produits mt"></div>
+    </div></section>
+
+    <section class="carte carte-signature" id="carteProgrammes" style="display:none"><div class="carte-corps">
+      <h2 style="font-size:19px">🎓 <span data-i18n="prog.titre">Inscriptions ouvertes</span></h2>
+      <p class="petit muet" style="margin-top:4px" data-i18n="prog.intro">Choisissez un programme pour envoyer une demande d'inscription.</p>
+      <div id="listeProgrammes" class="mt"></div>
+      <div id="formInscription" style="display:none;margin-top:18px;border-top:1px solid var(--bordure);padding-top:16px">
+        <h3 style="font-size:16px" id="titreInscription"></h3>
+        <div id="docsProgramme" class="petit muet mt"></div>
+        <label data-i18n="prog.eleve">Nom complet de l'élève *</label><input id="inEleve">
+        <div class="grille" style="grid-template-columns:1fr 1fr;gap:10px">
+          <div><label data-i18n="prog.naissance">Date de naissance</label><input id="inNaissance" type="date"></div>
+          <div><label data-i18n="prog.sexe">Sexe</label>
+            <select id="inSexe"><option value="">—</option><option value="F">F</option><option value="M">M</option></select></div>
+        </div>
+        <label data-i18n="prog.provenance">École de provenance</label><input id="inProvenance">
+        <hr style="border:none;border-top:1px solid var(--bordure);margin:16px 0 4px">
+        <label data-i18n="prog.parent">Nom du parent ou tuteur *</label><input id="inParent">
+        <div class="grille" style="grid-template-columns:1fr 1fr;gap:10px">
+          <div><label data-i18n="prog.lien">Lien avec l'élève</label><input id="inLien" placeholder="Père, mère, tuteur"></div>
+          <div><label data-i18n="prog.tel">Téléphone (WhatsApp) *</label><input id="inTel" placeholder="Ex : 50937120000"></div>
+        </div>
+        <div class="grille" style="grid-template-columns:1fr;gap:10px">
+          <div><label data-i18n="prog.courriel">Adresse email du responsable</label>
+            <input id="inCourriel" type="email" inputmode="email" placeholder="pour suivre la demande">
+            <p class="aide" data-i18n="prog.courrielAide">C'est à cette adresse que l'établissement vous répondra.</p></div>
+        </div>
+        <label data-i18n="prog.message">Message — facultatif</label><input id="inMessage">
+        <p class="champ-erreur" id="erreurInscription"></p>
+        <div class="flex" style="gap:8px">
+          <button class="btn btn-primaire" style="flex:1;background:var(--marque)" onclick="envoyerInscription()" data-i18n="prog.envoyer">Envoyer la demande</button>
+          <button class="btn btn-fantome" onclick="fermerInscription()" data-i18n="prog.annuler">Annuler</button>
+        </div>
+      </div>
+    </div></section>
+
+    <section class="carte" id="carteSuivi" style="display:none"><div class="carte-corps">
+      <h2 style="font-size:17px">📁 <span data-i18n="suivi.titre">Suivre mon dossier</span></h2>
+      <p class="petit muet" style="margin-top:4px" data-i18n="suivi.intro">Saisissez la référence de votre dossier et votre téléphone.</p>
+      <div class="grille mt" style="grid-template-columns:1fr 1fr;gap:10px">
+        <div><label data-i18n="suivi.ref">Référence</label><input id="suRef" placeholder="Ex : DB62TAW"></div>
+        <div><label data-i18n="suivi.tel">Téléphone</label><input id="suTel" placeholder="Ex : 50937120000"></div>
+      </div>
+      <button class="btn btn-primaire mt" style="width:100%;background:var(--marque)" onclick="chercherDossier()" data-i18n="suivi.chercher">Consulter</button>
+      <div id="resultatSuivi" class="mt"></div>
+    </div></section>
+
+    <section class="carte" id="carteInfosMetier" style="display:none"><div class="carte-corps">
+      <h2 style="font-size:17px" id="titreInfosMetier">Informations pratiques</h2>
+      <div id="listeInfosMetier" class="mt"></div>
+    </div></section>
+
+    <section class="carte carte-signature" id="carteResort" style="display:none"><div class="carte-corps">
+      <div class="flex" style="gap:10px;flex-wrap:wrap">
+        <h2 style="font-size:19px">🏝️ <span data-i18n="resort.titre">Séjour tout inclus</span></h2>
+        <span class="badge badge-resort" data-i18n="resort.badge">TOUT INCLUS</span>
+      </div>
+      <p class="petit muet" style="margin-top:6px" data-i18n="resort.intro">Ces prestations sont comprises dans le prix de la nuit.</p>
+      <div id="listeInclus" class="puces-equip" style="margin-top:12px"></div>
+      <p class="petit muet" id="noteFormule" style="margin-top:10px"></p>
+    </div></section>
+
+    <section class="carte" id="carteMenu" style="display:none"><div class="carte-corps">
+      <h2 style="font-size:19px">🍽️ Restaurant &amp; Bar</h2>
+      <p class="petit muet" style="margin-top:4px" data-i18n="menu.intro">Notre carte du jour. Les prix sont en gourdes.</p>
+      <div id="ongletsMenu" class="onglets-menu mt"></div>
+      <div id="listeMenu" class="mt"></div>
+    </div></section>
+
+    <section class="carte" id="carteChambres" style="display:none"><div class="carte-corps">
+      <h2 style="font-size:19px">🛏️ <span data-i18n="hotel.titre">Chambres, séjours &amp; services</span></h2>
+      <div id="listeChambres" class="mt"></div>
+      <div id="servicesHotel" class="mt"></div>
+      <div id="politiquesHotel" class="petit muet mt"></div>
+      <div class="mt" style="border-top:1px solid var(--bordure);padding-top:16px">
+        <h3 style="font-size:15px;margin-bottom:10px">Réserver un séjour</h3>
+        <div class="grille" style="grid-template-columns:1fr 1fr;gap:10px">
+          <div><label>Arrivée</label><input type="date" id="sjArrivee"></div>
+          <div><label>Départ</label><input type="date" id="sjDepart"></div>
+        </div>
+        <label>Type de chambre</label>
+        <select id="sjChambre"></select>
+        <label>Nombre de personnes</label>
+        <input type="number" id="sjPersonnes" min="1" value="2">
+        <div id="blocPlans" style="display:none">
+          <label data-i18n="sejour.plan">Formule</label>
+          <select id="sjPlan"></select>
+        </div>
+        <button class="btn btn-primaire mt" style="width:100%;background:var(--marque)" onclick="verifierSejour()" data-i18n="sejour.verifier">Vérifier la disponibilité</button>
+        <div id="sjDispo" class="mt"></div>
+        <div id="sjCoordonnees" style="display:none">
+          <label>Votre nom complet *</label><input id="sjNom">
+          <label>Téléphone (WhatsApp) *</label><input id="sjTel" placeholder="Ex : 50937120000">
+          <label>Adresse email</label><input id="sjEmail" type="email" inputmode="email" placeholder="vous@exemple.com">
+          <p class="aide">C'est par là que vous recevrez la confirmation et le rappel de votre arrivée.</p>
+          <button class="btn btn-primaire mt" style="width:100%;background:var(--marque)" onclick="reserverSejour()">Confirmer la demande de séjour</button>
+        </div>
+        <div id="sjPaiement" style="display:none;margin-top:16px">
+          <div style="background:#D1FADF;border-radius:10px;padding:14px;margin-bottom:14px">
+            🎉 <strong>Demande enregistrée !</strong> <span id="montantPaiement"></span>
+            <p class="petit muet" style="margin-top:6px">Procédez au paiement pour confirmer votre séjour.</p>
+          </div>
+          <button class="btn btn-primaire" style="width:100%;background:var(--marque)" onclick="initierPaiement('sejour')">💳 Payer maintenant</button>
+        </div>
+      </div>
+    </div></section>
+
+    <section class="carte"><div class="carte-corps">
+      <div class="flex entre">
+        <h2 style="font-size:19px">Avis clients</h2>
+        <button class="btn btn-contour btn-petit" onclick="document.getElementById('voileAvis').classList.add('ouvert')">Laisser un avis</button>
+      </div>
+      <div id="listeAvis" class="mt"></div>
+    </div></section>
+  </div>
+
+  <aside style="display:grid;gap:22px">
+    <section class="carte" id="carteResa"><div class="carte-corps">
+      <h2 style="font-size:19px">Réserver un rendez-vous</h2>
+      <div class="etapes-resa mt" id="barrePas"><div class="pas fait"></div><div class="pas"></div><div class="pas"></div><div class="pas"></div></div>
+      <div id="zonePas"></div>
+    </div></section>
+
+    <section class="carte"><div class="carte-corps">
+      <h2 style="font-size:16px">Informations</h2>
+      <div id="infos" class="mt petit"></div>
+      <h3 style="font-size:14px;margin-top:16px">Horaires</h3>
+      <div class="horaires-liste mt" id="horaires" style="margin-top:8px"></div>
+    </div></section>
+
+    <section class="carte" id="carteLocalisation" style="display:none"><div class="carte-corps">
+      <h2 style="font-size:16px">📍 Localisation</h2>
+      <div id="mapDistance" style="height:260px;border-radius:12px;margin-top:12px;background:#EEF2F7"></div>
+      <div id="infoDistance" class="petit muet" style="margin-top:10px"></div>
+      <button class="btn btn-contour btn-petit" style="width:100%;margin-top:10px" id="btnMaPosition" onclick="afficherMaPosition()">📡 Voir la distance depuis ma position</button>
+    </div></section>
+
+    <section class="carte"><div class="carte-corps">
+      <h2 style="font-size:16px">Équipe</h2>
+      <div id="equipe" class="mt"></div>
+    </div></section>
+  </aside>
+</main>
+
+<!-- Modale avis -->
+<div class="voile" id="voileAvis">
+  <div class="modale">
+    <h3>Laisser un avis</h3>
+    <label>Votre nom</label><input id="avisNom" placeholder="Ex : Jean Michel">
+    <label>Note</label>
+    <select id="avisNote"><option value="5">★★★★★ — Excellent</option><option value="4">★★★★☆ — Très bien</option><option value="3">★★★☆☆ — Bien</option><option value="2">★★☆☆☆ — Moyen</option><option value="1">★☆☆☆☆ — Décevant</option></select>
+    <label>Commentaire</label><textarea id="avisTexte" rows="3" placeholder="Partagez votre expérience…"></textarea>
+    <div class="flex mt" style="justify-content:flex-end">
+      <button class="btn btn-fantome" onclick="document.getElementById('voileAvis').classList.remove('ouvert')">Annuler</button>
+      <button class="btn btn-primaire" onclick="envoyerAvis()">Publier l'avis</button>
+    </div>
+  </div>
+</div>
+
+<script src="/app.js"></script>
+<script>
+// Réseaux sociaux : libellés et pictogrammes
+const NOM_RESEAU = { facebook:'Facebook', instagram:'Instagram', whatsapp:'WhatsApp',
+  tiktok:'TikTok', youtube:'YouTube', x:'X', linkedin:'LinkedIn', threads:'Threads', site:'Site web' };
+const ICO_RESEAU = { facebook:'📘', instagram:'📸', whatsapp:'💬', tiktok:'🎵',
+  youtube:'▶️', x:'✖️', linkedin:'💼', threads:'🧵', site:'🌐' };
+/* Réseaux dont nous avons le logo rond : il remplace l'émoji, qui ne se
+   reconnaît pas aussi vite et change de dessin d'un téléphone à l'autre. */
+const LOGO_RESEAU = { facebook:1, instagram:1, whatsapp:1, telegram:1, x:1, threads:1 };
+const marqueReseau = (cle) => LOGO_RESEAU[cle]
+  ? `<img src="/logos/${cle}.png" alt="" width="40" height="40" loading="lazy">`
+  : (ICO_RESEAU[cle] || '🔗');
+const slug = location.pathname.replace(/^\//, '').replace(/\.html$/, '') || new URLSearchParams(location.search).get('slug');
+let ent = null;
+let resa = { pas: 1, service: null, date: '', heure: '' };
+const NOMS_JOURS = { lun: 'Lundi', mar: 'Mardi', mer: 'Mercredi', jeu: 'Jeudi', ven: 'Vendredi', sam: 'Samedi', dim: 'Dimanche' };
+
+async function charger() {
+  try { ent = await api('/api/entreprises/' + slug); }
+  catch { document.body.innerHTML = '<div class="conteneur centre" style="padding:80px 20px"><h1>Entreprise introuvable</h1><p class="muet mt">Cette page n\'existe pas ou n\'est pas encore approuvée.</p><a class="btn btn-primaire mt" href="/" style="margin-top:20px">Retour à l\'accueil</a></div>'; return; }
+
+  document.title = ent.nom + ' — Konekte';
+  /* Une entreprise sans couleur enregistrée garde celles de Konekte.
+     Sans ce garde-fou, `--marque` recevait « undefined » : la variable
+     devenait invalide et le bouton « Acheter », blanc sur blanc,
+     disparaissait purement et simplement. */
+  if (ent.couleur) document.documentElement.style.setProperty('--marque', ent.couleur);
+  if (ent.couleur2) document.documentElement.style.setProperty('--marque2', ent.couleur2);
+
+  /* Photo de couverture personnalisée. Elle est affichée telle quelle,
+     en entier : c'est une affiche que l'entreprise a composée, avec son
+     nom et ses arguments. Un voile de couleur par-dessus la délavait, et
+     un cadrage « cover » en coupait le haut et le bas. */
+  if (ent.photoFond) {
+    const ban = document.querySelector('.banniere-ent');
+    ban.classList.add('photo');
+    const img = document.createElement('img');
+    img.className = 'img-banniere';
+    img.alt = 'Bannière de ' + ent.nom;
+    img.src = ent.photoFond;
+    ban.style.setProperty('--affiche', `url('${ent.photoFond}')`);
+    ban.appendChild(img);
+    document.querySelector('.entete-ent').classList.add('posee');
+
+    /* Une affiche de boutique porte presque toujours un appel à l'action
+       dessiné dessus — « Commandez maintenant ! ». Ce bouton n'est qu'un
+       dessin : il ne peut pas savoir de quel produit il parle. La
+       boutique désigne donc, dans ses réglages, le produit à ouvrir ;
+       sans ce choix, le clic descend jusqu'aux produits. */
+    const vedette = (ent.produits || []).some(x => x.id === ent.produitVedette) ? ent.produitVedette : '';
+    const aDuContenu = (ent.produits || []).length || (ent.services || []).length;
+    if (vedette || aDuContenu) {
+      const lgb = (localStorage.getItem('langue') || 'fr');
+      ban.style.cursor = 'pointer';
+      ban.setAttribute('role', 'button');
+      ban.setAttribute('tabindex', '0');
+      ban.setAttribute('aria-label', vedette
+        ? (lgb === 'ht' ? 'Wè pwodwi a' : 'Voir le produit')
+        : (lgb === 'ht' ? 'Wè pwodwi nou yo' : 'Voir nos produits'));
+      const suivre = () => {
+        if (vedette) return ouvrirProduit(vedette);
+        const c = document.getElementById('carteServices');
+        if (c) c.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      };
+      ban.addEventListener('click', suivre);
+      ban.addEventListener('keydown', (ev) => {
+        if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); suivre(); }
+      });
+    }
+  }
+
+  document.getElementById('entete').innerHTML = `
+    <div class="logo-ent">${ent.logoImage ? `<img src="${ent.logoImage}" alt="Logo ${ech(ent.nom)}" loading="lazy">` : ech(ent.logoTexte)}</div>
+    <div style="flex:1;min-width:220px">
+      <div class="flex" style="gap:10px;flex-wrap:wrap">
+        <h1 style="font-size:24px">${ech(ent.nom)}</h1>
+        ${ent.plan === 'premium' ? '<span class="badge badge-bleu">Premium</span>' : ''}
+      </div>
+      <p class="muet petit">${ICONES_CAT[ent.categorie] || '✨'} ${ech(ent.categorie)} • ${ech(ent.adresse)}</p>
+      <p class="petit" style="margin-top:6px"><span class="etoiles">${etoiles(ent.note)}</span> <strong>${ent.note || '—'}</strong> <span class="muet">(${ent.totalAvis} avis)</span></p>
+    </div>
+    <div class="bloc-actions">
+      <div class="actions-ent">
+      ${(() => {
+        // Le bouton suit le métier : on n'invite pas à « réserver » chez un commerçant,
+        // et on renvoie vers la section qui existe réellement sur sa page.
+        const lgn = (localStorage.getItem('langue') || 'fr');
+        const verbe = (ent.action && ent.action[lgn === 'ht' ? 'ht' : 'fr']) || (lgn === 'ht' ? 'Rezève' : 'Réserver');
+        const cible = (ent.produits || []).length ? '#carteServices'
+                    : ((ent.chambres || []).length ? '#carteChambres' : '#carteResa');
+        return `<a class="btn btn-primaire" href="${cible}" style="background:var(--marque)">${ech(verbe)}</a>`;
+      })()}
+      ${ent.whatsapp ? `<a class="btn btn-succes" target="_blank" rel="noopener" href="https://wa.me/${ech(ent.whatsapp)}">💬 WhatsApp</a>` : ''}
+      </div>
+      <div class="flex" style="gap:6px;justify-content:center" aria-label="Partager cette page">
+        ${(ent.reseaux && ent.reseaux.length) ? `<div class="reseaux-ent">
+          ${ent.reseaux.map(r => `<a href="${ech(r.lien)}" target="_blank" rel="noopener"
+             class="lien-reseau ${ech(r.cle)}" title="${ech(NOM_RESEAU[r.cle] || r.cle)}"
+             aria-label="${ech(NOM_RESEAU[r.cle] || r.cle)}">
+             ${marqueReseau(r.cle)}</a>`).join('')}
+        </div>` : ''}
+        <div class="rang-partage">
+          <button class="pastille-partage" onclick="partager('whatsapp')" title="Partager sur WhatsApp" aria-label="Partager sur WhatsApp"><img src="/logos/whatsapp.png" alt="" width="44" height="44"></button>
+          <button class="pastille-partage" onclick="partager('facebook')" title="Partager sur Facebook" aria-label="Partager sur Facebook"><img src="/logos/facebook.png" alt="" width="44" height="44"></button>
+          <button class="pastille-partage" onclick="partager('instagram')" title="Partager sur Instagram" aria-label="Partager sur Instagram"><img src="/logos/instagram.png" alt="" width="44" height="44"></button>
+          <button class="pastille-partage" onclick="partager('telegram')" title="Partager sur Telegram" aria-label="Partager sur Telegram"><img src="/logos/telegram.png" alt="" width="44" height="44"></button>
+          <button class="pastille-partage" onclick="partager('x')" title="Partager sur X" aria-label="Partager sur X"><img src="/logos/x.png" alt="" width="44" height="44"></button>
+          <button class="pastille-partage lien" onclick="partager('copier')" title="Copier le lien" aria-label="Copier le lien">🔗</button>
+        </div>
+      </div>
+    </div>`;
+
+  window.partager = async (canal) => {
+    const url = location.href;
+    /* L'invitation suit le métier : on ne propose pas un rendez-vous chez
+       un commerçant ni une commande chez un coiffeur. */
+    const aRdv = (ent.modulesActifs || []).includes('rdv');
+    const aSejour = (ent.modulesActifs || []).includes('hotellerie');
+    const texte = aSejour ? `Réservez chez ${ent.nom} sur Konekte : `
+      : aRdv ? `Prenez rendez-vous chez ${ent.nom} sur Konekte : `
+      : `Découvrez ${ent.nom} sur Konekte : `;
+    if (canal === 'whatsapp') window.open('https://wa.me/?text=' + encodeURIComponent(texte + url), '_blank');
+    else if (canal === 'facebook') window.open('https://www.facebook.com/sharer/sharer.php?u=' + encodeURIComponent(url), '_blank');
+    else if (canal === 'x') window.open('https://twitter.com/intent/tweet?text=' + encodeURIComponent(texte) + '&url=' + encodeURIComponent(url), '_blank');
+    else if (canal === 'telegram') window.open('https://t.me/share/url?url=' + encodeURIComponent(url) + '&text=' + encodeURIComponent(texte), '_blank');
+    else if (canal === 'instagram') {
+      /* Instagram n'accepte pas de lien de partage depuis un navigateur :
+         on copie le lien pour qu'il soit collé dans une story ou une bio,
+         plutôt que d'ouvrir une page qui ne mènerait nulle part. */
+      try { await navigator.clipboard.writeText(url); toast('Lien copié. Collez-le dans votre story ou votre bio Instagram.'); }
+      catch { prompt('Copiez ce lien pour Instagram :', url); }
+    }
+    else if (canal === 'copier') {
+      if (navigator.share) { try { await navigator.share({ title: ent.nom + ' — Konekte', text: texte, url }); return; } catch {} }
+      try { await navigator.clipboard.writeText(url); toast('Lien copié ! Collez-le où vous voulez.'); }
+      catch { prompt('Copiez ce lien :', url); }
+    }
+  };
+
+  document.getElementById('listeServices').innerHTML = ent.description
+    ? `<p class="muet petit" style="margin-bottom:12px">${ech(ent.description)}</p>` : '';
+
+
+// Libellé d'un équipement, depuis le référentiel fourni par le serveur
+function refEquip(cle){
+  const r = (ent.equipementsRef || {})[cle];
+  if (!r) return '';
+  const langue = (localStorage.getItem('langue') || 'fr');
+  const lib = langue === 'ht' && r.ht ? r.ht : r.fr;
+  return `<span class="puce-equip">${r.ico} ${ech(lib)}</span>`;
+}
+
+
+
+
+
+
+
+
+
+  // ---- Panier et commande ----
+  let panier = [], modeRemise = '', modePaiement = '';
+  const L = () => (localStorage.getItem('langue') || 'fr');
+  /* `ent.vente` n'est envoyé par le serveur que si la vente en ligne est
+     ouverte et comprise dans le forfait : sa seule présence vaut donc
+     autorisation. Reste à vérifier qu'un mode de remise est proposé — sans
+     retrait ni livraison, personne ne saurait où prendre sa commande. */
+  function peutCommander(){ return !!(ent.vente && (ent.vente.cueillette || ent.vente.livraison)); }
+  function prixDe(p){ return p.prixPromo > 0 ? p.prixPromo : p.prix; }
+
+  /* La quantité vient de la fiche du produit ; un appel sans quantité
+     — le bouton d'achat du catalogue — ajoute une unité, comme avant. */
+  window.ajouterAuPanier = (id, q) => {
+    const p = (ent.produits || []).find(x => x.id === id);
+    if (!p) return;
+    const n = Math.max(1, Math.min(99, parseInt(q, 10) || 1));
+    const l = panier.find(x => x.id === id);
+    if (l) l.q = Math.min(99, l.q + n);
+    else panier.push({ id, nom: p.nom, prix: prixDe(p), unite: p.unite || '', q: n,
+                       precommande: p.etat !== 'disponible', dateDispo: p.dateDispo || '' });
+    majBullePanier();
+    const pre = p.etat !== 'disponible';
+    toast(L()==='ht'
+      ? (pre ? 'Ajoute kòm prekòmand' : 'Ajoute nan panye a')
+      : (pre ? 'Ajouté en précommande' : 'Ajouté au panier'));
+  };
+  function majBullePanier(){
+    const n = panier.reduce((s,l) => s + l.q, 0);
+    const total = panier.reduce((s,l) => s + l.prix * l.q, 0);
+    const b = document.getElementById('bulPanier');
+    b.style.display = n ? '' : 'none';
+    document.getElementById('nbPanier').textContent = n;
+    document.getElementById('totalPanier').textContent = total.toLocaleString('fr-HT') + ' HTG';
+  }
+  window.ouvrirPanier = () => {
+    dessinerPanier();
+    document.getElementById('voilePanier').classList.add('ouvert');
+  };
+  window.viderPanier = () => { panier = []; majBullePanier(); dessinerPanier(); };
+  window.changerQte = (id, d) => {
+    const l = panier.find(x => x.id === id); if (!l) return;
+    l.q += d; if (l.q <= 0) panier = panier.filter(x => x.id !== id);
+    majBullePanier(); dessinerPanier();
+  };
+  function dessinerPanier(){
+    const lg = L(), v = ent.vente || {};
+    const z = document.getElementById('lignesPanier');
+    if (!panier.length) {
+      z.innerHTML = `<p class="muet petit">${lg==='ht'?'Panye a vid.':'Votre panier est vide.'}</p>`;
+      document.getElementById('etapeRemise').style.display = 'none';
+      return;
+    }
+    z.innerHTML = panier.map(l => `<div class="ligne-panier">
+      <div style="flex:1"><strong class="petit">${ech(l.nom)}</strong>
+        ${l.precommande ? `<div class="petit" style="color:#6D28D9;font-weight:700">⏳ ${lg==='ht'?'Prekòmand':'Précommande'}${
+          l.dateDispo ? ' — ' + ech(dateCourte(l.dateDispo, lg)) : ''}</div>` : ''}
+        <div class="petit muet">${(+l.prix).toLocaleString('fr-HT')} HTG${l.unite?` / ${ech(l.unite)}`:''}</div></div>
+      <div class="qte-panier">
+        <button onclick="changerQte('${l.id}',-1)">−</button>
+        <strong style="min-width:22px;text-align:center">${l.q}</strong>
+        <button onclick="changerQte('${l.id}',1)">+</button>
+      </div>
+      <strong class="petit" style="min-width:76px;text-align:right">${(l.prix*l.q).toLocaleString('fr-HT')} HTG</strong>
+    </div>`).join('');
+    document.getElementById('etapeRemise').style.display = '';
+    // Modes proposés
+    const modes = [];
+    if (v.cueillette) modes.push({ cle:'cueillette', ico:'🏪', fr:'Retrait sur place', ht:'Vin chèche', info: v.horairesCueillette });
+    if (v.livraison)  modes.push({ cle:'livraison',  ico:'🛵', fr:'Livraison',        ht:'Livrezon',  info: v.delaiPreparation });
+    if (!modeRemise && modes.length) modeRemise = modes[0].cle;
+    document.getElementById('choixMode').innerHTML = modes.map(m => `
+      <label class="opt-formule${modeRemise===m.cle?' on':''}">
+        <input type="radio" name="moderemise" value="${m.cle}"${modeRemise===m.cle?' checked':''} onchange="choisirMode('${m.cle}')">
+        <span><strong>${m.ico} ${ech(lg==='ht'?m.ht:m.fr)}</strong>${m.info?`<br><span class="petit muet">${ech(m.info)}</span>`:''}</span>
+      </label>`).join('');
+    // Zones
+    const sel = document.getElementById('pnZone');
+    const zones = v.zones || [];
+    sel.innerHTML = zones.map(z2 => `<option value="${ech(z2.nom)}">${ech(z2.nom)} — ${(+z2.frais).toLocaleString('fr-HT')} HTG${z2.delai?` (${ech(z2.delai)})`:''}</option>`).join('')
+      + `<option value="">${lg==='ht'?'Lòt kote':'Autre zone'} — ${(+(v.fraisBase||0)).toLocaleString('fr-HT')} HTG</option>`;
+    document.getElementById('infoCueillette').textContent = v.horairesCueillette
+      ? (lg==='ht'?'Lè pou vin chèche : ':'Horaires de retrait : ') + v.horairesCueillette : '';
+    document.getElementById('consigneVente').textContent = v.consigne || '';
+    // Moyens de paiement proposés par la boutique
+    const paies = [];
+    /* Le libellé dit ce que l'entreprise a réellement mis en place : son
+       propre prestataire quand elle en a déclaré un, et les seuls
+       portefeuilles qu'elle accepte. Annoncer « MonCash, NatCash,
+       Kashpaw » quand elle n'en accepte qu'un trompe le client. */
+    if (v.paiementEnLigne !== false) {
+      const noms = { moncash:'MonCash', natcash:'NatCash', kashpaw:'Kashpaw' };
+      const choisies = (v.methodesEnLigne || []).map(m => noms[m] || m);
+      paies.push({ cle:'enligne', ico:'💳',
+        fr: v.passerelleNom ? 'Payer par ' + v.passerelleNom : 'Payer maintenant en ligne',
+        ht: v.passerelleNom ? 'Peye ak ' + v.passerelleNom : 'Peye kounye a an liy',
+        info: (choisies.length ? choisies.join(', ') : 'MonCash, NatCash, Kashpaw')
+          + (v.paiementManuel ? (lg==='ht' ? ' · konfimasyon alamen' : ' · confirmation à la main') : '') });
+    }
+    if (v.paiementRemise !== false) paies.push({ cle:'remise', ico:'💵',
+      fr: modeRemise==='livraison' ? 'Payer à la livraison' : 'Payer au retrait',
+      ht: modeRemise==='livraison' ? 'Peye lè yo livre' : 'Peye lè w vin chèche', info:'' });
+    /* Virement direct sur les comptes du commerçant : il n'y a pas de
+       passerelle, c'est le client qui envoie et déclare sa référence. */
+    const comptes = (ent.comptesPaiement || []);
+    if (v.paiementDirect && comptes.length) paies.push({ cle:'direct', ico:'🏦',
+      fr:'Payer directement au commerçant', ht:'Peye komèsan an dirèkteman',
+      info: comptes.map(c => c.libelle).join(' · ') });
+    if (!modePaiement || !paies.some(x => x.cle === modePaiement)) modePaiement = paies.length ? paies[0].cle : 'remise';
+    document.getElementById('blocPaiement').style.display = paies.length > 1 ? '' : 'none';
+    document.getElementById('choixPaiement').innerHTML = paies.map(m => `
+      <label class="opt-formule${modePaiement===m.cle?' on':''}">
+        <input type="radio" name="modepaie" value="${m.cle}"${modePaiement===m.cle?' checked':''} onchange="choisirPaiement('${m.cle}')">
+        <span><strong>${m.ico} ${ech(lg==='ht'?m.ht:m.fr)}</strong>${m.info?`<br><span class="petit muet">${ech(m.info)}</span>`:''}</span>
+      </label>`).join('');
+    dessinerVirement();
+    majTotalPanier();
+  }
+  window.choisirPaiement = (m) => {
+    modePaiement = m;
+    document.querySelectorAll('#choixPaiement .opt-formule').forEach(o =>
+      o.classList.toggle('on', o.querySelector('input').checked));
+    dessinerVirement();
+  };
+
+  /* Coordonnées du commerçant, et champ où le client inscrit la référence
+     de la transaction qu'il vient de faire. Rien n'est vérifié ici : c'est
+     le commerçant qui regardera son compte. Le dire franchement évite de
+     laisser croire à une confirmation automatique. */
+  let compteChoisi = '';
+  window.dessinerVirement = () => {
+    const z = document.getElementById('blocVirement');
+    if (!z) return;
+    /* La langue se relit ici : `lg` appartient à une autre fonction, et
+       s'y référer faisait échouer tout l'affichage du panier. */
+    const lg = (localStorage.getItem('langue') || 'fr');
+    const comptes = ent.comptesPaiement || [];
+    if (modePaiement !== 'direct' || !comptes.length) { z.style.display = 'none'; z.innerHTML = ''; return; }
+    if (!comptes.some(c => c.id === compteChoisi)) compteChoisi = comptes[0].id;
+    const c = comptes.find(x => x.id === compteChoisi) || comptes[0];
+    z.style.display = '';
+    z.innerHTML = `
+      ${comptes.length > 1 ? `<label>${lg==='ht'?'Chwazi kont lan':'Choisissez le compte'}</label>
+      <select onchange="compteChoisi=this.value;dessinerVirement()">
+        ${comptes.map(x => `<option value="${ech(x.id)}"${x.id===c.id?' selected':''}>${ech((x.ico||'') + ' ' + x.libelle)}</option>`).join('')}
+      </select>` : ''}
+      <div class="recap mt">
+        <div><span>${ech(c.libelle)}</span><strong>${ech(c.numero)}</strong></div>
+        ${c.titulaire ? `<div><span>${lg==='ht'?'Nan non':'Au nom de'}</span><span>${ech(c.titulaire)}</span></div>` : ''}
+        ${c.banque ? `<div><span>${lg==='ht'?'Bank':'Banque'}</span><span>${ech(c.banque)}</span></div>` : ''}
+      </div>
+      ${c.instructions ? `<p class="aide">${ech(c.instructions)}</p>` : ''}
+      <label>${lg==='ht'?'Referans tranzaksyon ou an *':'Référence de votre transaction *'}</label>
+      <input id="pnRefVersement" placeholder="${lg==='ht'?'Nimewo konfimasyon an':'Le numéro de confirmation reçu'}" autocomplete="off">
+      <p class="aide">${lg==='ht'
+        ? 'Voye lajan an sou kont ki anwo a, epi mete referans lan isit. Komèsan an ap verifye sou kont li anvan li prepare kòmand ou.'
+        : 'Envoyez le montant sur le compte ci-dessus, puis inscrivez ici la référence reçue. Le commerçant vérifie sur son compte avant de préparer votre commande.'}</p>`;
+  };
+  window.choisirMode = (m) => {
+    modeRemise = m;
+    document.querySelectorAll('#choixMode .opt-formule').forEach(o =>
+      o.classList.toggle('on', o.querySelector('input').checked));
+    majTotalPanier();
+  };
+  window.majSurPlace = () => {
+    const coche = document.getElementById('pnSurPlace').checked;
+    document.getElementById('blocNumChambre').style.display = coche ? '' : 'none';
+    // Un client logé sur place ne renseigne ni zone ni adresse
+    document.getElementById('blocLivraisonClient').style.display =
+      (modeRemise === 'livraison' && !coche) ? '' : 'none';
+    majTotalPanier();
+  };
+
+  window.majTotalPanier = () => {
+    const v = ent.vente || {}, lg = L();
+    const surPlace = document.getElementById('pnSurPlace').checked;
+    // La case « client de l'hôtel » n'a de sens que si l'établissement loge des clients
+    document.getElementById('blocSurPlace').style.display = (ent.chambres || []).length ? '' : 'none';
+    document.getElementById('blocLivraisonClient').style.display = (modeRemise==='livraison' && !surPlace) ? '' : 'none';
+    document.getElementById('blocCueilletteClient').style.display = (modeRemise==='cueillette' && !surPlace) ? '' : 'none';
+    const sousTotal = panier.reduce((s,l) => s + l.prix*l.q, 0);
+    let frais = 0;
+    if (modeRemise === 'livraison' && !surPlace) {
+      const nom = document.getElementById('pnZone').value;
+      const zone = (v.zones||[]).find(z => z.nom === nom);
+      frais = zone ? zone.frais : (v.fraisBase || 0);
+      if (v.seuilGratuite && sousTotal >= v.seuilGratuite) frais = 0;
+    }
+    const manque = v.minimumCommande && sousTotal < v.minimumCommande ? v.minimumCommande - sousTotal : 0;
+    document.getElementById('recapPanier').innerHTML = `
+      <div><span>${lg==='ht'?'Sou-total':'Sous-total'}</span><span>${sousTotal.toLocaleString('fr-HT')} HTG</span></div>
+      ${modeRemise==='livraison'?`<div><span>${lg==='ht'?'Livrezon':'Livraison'}</span><span>${frais ? frais.toLocaleString('fr-HT')+' HTG' : (lg==='ht'?'Gratis':'Offerte')}</span></div>`:''}
+      <div class="total"><span>Total</span><span>${(sousTotal+frais).toLocaleString('fr-HT')} HTG</span></div>
+      ${manque?`<div style="color:var(--orange);font-weight:700"><span>${lg==='ht'?'Minimum':'Minimum'}</span><span>+${manque.toLocaleString('fr-HT')} HTG</span></div>`:''}`;
+  };
+  window.validerCommande = async () => {
+    const err = document.getElementById('erreurPanier'), lg = L();
+    const nom = document.getElementById('pnNom').value.trim();
+    const tel = document.getElementById('pnTel').value.trim();
+    const courrielClient = document.getElementById('pnCourriel').value.trim();
+    /* Une adresse mal écrite est pire que pas d'adresse : le client croit
+       qu'il recevra son suivi et n'en verra jamais la couleur. */
+    if (courrielClient && !/^[^@\s]+@[^@\s]+\.[^@\s]{2,}$/.test(courrielClient)) {
+      err.textContent = lg==='ht' ? 'Adrès imèl la pa bon.' : "L'adresse email n'est pas valide.";
+      return;
+    }
+    if (!nom || !tel) { err.textContent = lg==='ht'?'Non ak telefòn obligatwa.':'Nom et téléphone obligatoires.'; return; }
+    const adresse = document.getElementById('pnAdresse').value.trim();
+    const surPlace = document.getElementById('pnSurPlace').checked;
+    const numCh = document.getElementById('pnNumChambre').value.trim();
+    if (surPlace && !numCh) { err.textContent = lg==='ht'?'Mete nimewo chanm ou.':'Indiquez votre numéro de chambre.'; return; }
+    if (modeRemise === 'livraison' && !surPlace && !adresse) { err.textContent = lg==='ht'?'Mete adrès la.':"Indiquez l'adresse de livraison."; return; }
+    err.textContent = '';
+    try {
+      const r = await api('/api/commandes','POST',{
+        slug, mode: modeRemise, zone: document.getElementById('pnZone').value,
+        adresse, repere: document.getElementById('pnRepere').value.trim(),
+        clientNom: nom, clientTel: tel, clientEmail: courrielClient, paiement: modePaiement,
+        compteId: compteChoisi,
+        referenceVersement: (document.getElementById('pnRefVersement') || {}).value || '',
+        surPlace: document.getElementById('pnSurPlace').checked,
+        numeroChambre: document.getElementById('pnNumChambre').value.trim(),
+        message: document.getElementById('pnMessage').value.trim(),
+        lignes: panier.map(l => ({ produitId: l.id, quantite: l.q }))
+      });
+      panier = []; majBullePanier();
+      // Paiement en ligne : on ouvre la passerelle avant l'écran de confirmation
+      if (r.paiement === 'enligne') {
+        document.querySelector('#voilePanier .modale').innerHTML =
+          `<div class="centre" style="padding:20px 0"><p>${lg==='ht'?'Ap prepare peyman an…':'Préparation du paiement…'}</p></div>`;
+        try {
+          const pay = await api('/api/paiements/ouvrir','POST',{ slug, commandeType:'commande', commandeId: r.commandeId });
+          /* On reste sur Konekte : la passerelle s'ouvre dans une carte de
+             notre page de règlement, qui sait dire quand le paiement a
+             abouti et ramène ensuite le client à la boutique. */
+          if (pay.ok && (pay.urlInterne || pay.urlPaiement)) { location.href = pay.urlInterne || pay.urlPaiement; return; }
+          throw new Error(pay.erreur || 'Paiement indisponible');
+        } catch(err) {
+          document.querySelector('#voilePanier .modale').innerHTML = `
+            <div class="centre" style="padding:14px 0">
+              <h3>${lg==='ht'?'Kòmand resevwa':'Commande reçue'}</h3>
+              <p class="petit muet" style="margin-top:8px">${lg==='ht'?'Referans':'Référence'} <strong>${r.reference}</strong></p>
+              <a class="btn btn-contour btn-petit mt" href="/recu.html?ref=${encodeURIComponent(r.reference)}">${lg==='ht'?'Wè resi mwen':'Voir mon reçu'}</a>
+              <p class="petit" style="color:var(--orange);margin-top:10px">${lg==='ht'?'Peyman an liy pa disponib kounye a. Boutik la ap kontakte w.':"Le paiement en ligne est momentanément indisponible. La boutique vous contactera."}</p>
+              <button class="btn btn-primaire mt" style="width:100%" onclick="location.reload()">${lg==='ht'?'Fèmen':'Fermer'}</button>
+            </div>`;
+          return;
+        }
+      }
+      document.querySelector('#voilePanier .modale').innerHTML = `
+        <div class="centre" style="padding:14px 0">
+          <div style="width:56px;height:56px;border-radius:50%;background:var(--vert);color:#fff;display:grid;place-items:center;font-size:26px;margin:0 auto 14px">✓</div>
+          <h3>${r.precommande
+            ? (lg==='ht'?'Prekòmand resevwa !':'Précommande reçue !')
+            : (lg==='ht'?'Kòmand resevwa !':'Commande reçue !')}</h3>
+          <p class="petit muet" style="margin-top:8px">${ech(r.boutique)} — ${lg==='ht'?'referans':'référence'} <strong>${r.reference}</strong></p>
+          ${r.precommande ? `<p class="petit" style="color:#6D28D9;font-weight:700;margin-top:8px">⏳ ${
+            r.dateDispo
+              ? (lg==='ht' ? 'Pwodwi a ap disponib vè ' + ech(dateCourte(r.dateDispo, lg)) : 'Disponible aux environs du ' + ech(dateCourte(r.dateDispo, lg)))
+              : (lg==='ht' ? 'Boutik la ap avize w lè pwodwi a rive.' : 'La boutique vous avertira dès réception.')}</p>` : ''}
+          <div class="recap mt" style="text-align:left">
+            <div><span>${lg==='ht'?'Sou-total':'Sous-total'}</span><span>${(+r.sousTotal).toLocaleString('fr-HT')} HTG</span></div>
+            ${r.frais?`<div><span>${lg==='ht'?'Livrezon':'Livraison'}</span><span>${(+r.frais).toLocaleString('fr-HT')} HTG</span></div>`:''}
+            <div class="total"><span>Total</span><span>${(+r.total).toLocaleString('fr-HT')} HTG</span></div>
+          </div>
+          <p class="petit muet" style="margin-top:10px">${r.mode==='livraison'?(lg==='ht'?'🛵 Livrezon':'🛵 Livraison'):(lg==='ht'?'🏪 Vin chèche':'🏪 Retrait sur place')}${r.delai?` — ${ech(r.delai)}`:''}</p>
+          <!-- La confirmation et les étapes suivantes partent par courriel.
+               La page annonçait un message WhatsApp, qui n'arrive jamais. -->
+          ${r.paiement === 'direct' ? `<p class="petit" style="margin-top:8px;background:var(--orange-fond);color:#C4520E;border-radius:10px;padding:10px 12px">${lg==='ht'
+            ? 'Komèsan an pral verifye vèsman ou an sou kont li. Li ap konfime kòmand ou an apre sa.'
+            : 'Le commerçant va vérifier votre virement sur son compte. Il confirmera votre commande ensuite.'}</p>` : ''}
+          <p class="petit muet" style="margin-top:6px">${courrielClient
+            ? (lg==='ht'
+                ? 'Yon imel konfimasyon ale nan ' + ech(courrielClient) + '. Kenbe referans lan pou w swiv kòmand ou.'
+                : 'Un courriel de confirmation part vers ' + ech(courrielClient) + '. Conservez la référence pour suivre votre commande.')
+            : (lg==='ht'
+                ? 'Kenbe referans lan : se avè l w ap swiv kòmand ou nan « Acha mwen yo ».'
+                : 'Conservez la référence : elle vous permet de suivre votre commande dans « Mes achats ».')}</p>
+          <button class="btn btn-primaire mt" style="width:100%" onclick="location.reload()">${lg==='ht'?'Fèmen':'Fermer'}</button>
+        </div>`;
+    } catch(e){ err.textContent = e.message; }
+  };
+
+
+  // ---- Partage d'un produit ----
+  window.partagerProduit = async (ev, id, nom) => {
+    ev.preventDefault(); ev.stopPropagation();
+    // Adresse officielle fournie par le serveur : un produit partagé ne doit
+    // pas emmener le client sur une adresse technique
+    const lien = `${ent.urlPublique || location.origin}/${slug}?produit=${id}`;
+    const lg = (localStorage.getItem('langue') || 'fr');
+    const texte = (lg === 'ht' ? 'Gade sa : ' : 'Regardez : ') + nom;
+    // Partage natif du téléphone quand il existe
+    if (navigator.share) {
+      try { await navigator.share({ title: nom, text: texte, url: lien }); return; }
+      catch { /* partage annulé */ }
+    }
+    try {
+      await navigator.clipboard.writeText(lien);
+      toast(lg === 'ht' ? 'Lyen kopye' : 'Lien copié');
+    } catch {
+      window.open('https://wa.me/?text=' + encodeURIComponent(texte + ' ' + lien), '_blank');
+    }
+  };
+
+  /* Produit partagé : sa fiche s'ouvre directement. Celui qui reçoit
+     le lien veut ce produit-là, avec de quoi l'acheter — pas le
+     catalogue de la boutique à parcourir pour le retrouver. */
+  function ouvrirProduitPartage(){
+    const id = new URLSearchParams(location.search).get('produit');
+    if (!id) return;
+    const carte = document.querySelector(`[data-produit="${id}"]`);
+    if (!carte) return;
+    carte.classList.add('mise-en-avant');
+    carte.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    if ((ent.produits || []).some(x => x.id === id)) ouvrirProduit(id);
+  }
+
+
+
+  /* Photos d'un service : même visionneuse que pour les produits. */
+  window.voirService = (id) => {
+    const s = (ent.services || []).find(x => x.id === id);
+    if (!s) return;
+    const vues = (s.photos && s.photos.length) ? s.photos : (s.photo ? [s.photo] : []);
+    if (!vues.length) return;
+    const v = document.createElement('div');
+    v.className = 'visionneuse';
+    const dessiner = (i) => {
+      v.innerHTML = `
+        <button class="fermer" aria-label="Fermer">✕</button>
+        <div class="scene"><img src="${vues[i]}" alt="${ech(s.nom)}"></div>
+        <div class="vignettes">
+          ${vues.map((ph,k) => `<button class="${k===i?'on':''}" style="background-image:url('${ph}')" data-i="${k}"></button>`).join('')}
+        </div>
+        <p style="text-align:center;color:#fff;font-size:13.5px;padding-top:10px">
+          <strong>${ech(s.nom)}</strong> — ${htg(s.prix)}</p>`;
+      v.querySelector('.fermer').onclick = () => v.remove();
+      v.querySelectorAll('.vignettes button').forEach(b => {
+        b.onclick = (ev) => { ev.stopPropagation(); dessiner(+b.dataset.i); };
+      });
+    };
+    dessiner(0);
+    v.onclick = (ev) => { if (ev.target === v || ev.target.classList.contains('scene')) v.remove(); };
+    document.body.appendChild(v);
+  };
+
+  // ---- Galerie produit ----
+  window.changerVue = (id, i) => {
+    const carte = document.querySelector(`[data-produit="${id}"]`);
+    if (!carte) return;
+    carte.querySelectorAll('.media-produit .vue').forEach((v, k) => v.classList.toggle('on', k === i));
+    carte.querySelectorAll('.points-produit button').forEach((b, k) => b.classList.toggle('on', k === i));
+  };
+
+  /* Adresse d'intégration d'une vidéo, selon l'hébergeur. */
+  function urlIntegration(lien){
+    try {
+      const u = new URL(lien);
+      const h = u.hostname.replace(/^www\./, '');
+      if (h === 'youtu.be') return 'https://www.youtube.com/embed' + u.pathname;
+      if (h.endsWith('youtube.com')) {
+        const v = u.searchParams.get('v');
+        return v ? 'https://www.youtube.com/embed/' + v : lien.replace('/watch', '/embed');
+      }
+      if (h.endsWith('vimeo.com')) return 'https://player.vimeo.com/video' + u.pathname;
+      if (h.endsWith('facebook.com') || h === 'fb.watch')
+        return 'https://www.facebook.com/plugins/video.php?href=' + encodeURIComponent(lien);
+      return lien;
+    } catch { return lien; }
+  }
+
+  window.ouvrirVisionneuse = (id, surVideo, depart) => {
+    const p = (ent.produits || []).find(x => x.id === id);
+    if (!p) return;
+    const vues = (p.photos && p.photos.length) ? p.photos : (p.photo ? [p.photo] : []);
+    if (!vues.length && !p.video) return;
+    const lg = (localStorage.getItem('langue') || 'fr');
+
+    const v = document.createElement('div');
+    v.className = 'visionneuse';
+    const dessiner = (index) => {
+      const estVideo = index === 'video';
+      v.innerHTML = `
+        <button class="fermer" aria-label="Fermer">✕</button>
+        <div class="scene">${estVideo
+          ? `<iframe src="${ech(urlIntegration(p.video))}" allow="autoplay; encrypted-media" allowfullscreen></iframe>`
+          : `<img src="${vues[index]}" alt="${ech(p.nom)}">`}</div>
+        <div class="vignettes">
+          ${vues.map((ph,i) => `<button class="${!estVideo && i===index?'on':''}" style="background-image:url('${ph}')" data-i="${i}"></button>`).join('')}
+          ${p.video ? `<button class="${estVideo?'on':''}" data-i="video" style="background:#111;color:#fff;font-size:15px">▶</button>` : ''}
+        </div>`;
+      v.querySelector('.fermer').onclick = () => v.remove();
+      v.querySelectorAll('.vignettes button').forEach(b => {
+        b.onclick = (ev) => { ev.stopPropagation(); dessiner(b.dataset.i === 'video' ? 'video' : +b.dataset.i); };
+      });
+    };
+    // La visionneuse s'ouvre sur la photo que le client regardait
+    const i0 = Math.max(0, Math.min(vues.length - 1, parseInt(depart, 10) || 0));
+    dessiner(surVideo && p.video ? 'video' : i0);
+    v.onclick = (ev) => { if (ev.target === v || ev.target.classList.contains('scene')) v.remove(); };
+    document.body.appendChild(v);
+  };
+
+  /* ============================================================
+     Fiche d'un produit
+     ------------------------------------------------------------
+     Un clic sur un produit ouvre sa fiche, et non le catalogue :
+     photos, prix, état du stock, mode de remise, quantité et
+     bouton d'achat au même endroit. Le client décide sans avoir
+     à deviner, et sans repartir chercher ailleurs.
+     ============================================================ */
+  let idFiche = '', vueFiche = 0, qteFiche = 1;
+
+  function vuesDe(p){
+    return (p.photos && p.photos.length) ? p.photos : (p.photo ? [p.photo] : []);
+  }
+
+  window.ouvrirProduit = (id, surVideo) => {
+    const p = (ent.produits || []).find(x => x.id === id);
+    if (!p) return;
+    idFiche = id; qteFiche = 1; vueFiche = (surVideo && p.video) ? 'video' : 0;
+    dessinerFiche();
+    document.getElementById('voileProduit').classList.add('ouvert');
+  };
+  window.fermerProduit = () => {
+    document.getElementById('voileProduit').classList.remove('ouvert');
+  };
+  window.changerVueFiche = (i) => { vueFiche = i; dessinerFiche(); };
+  window.changerQteFiche = (d) => {
+    // Jamais moins d'une unité : un panier à zéro n'a pas de sens
+    qteFiche = Math.max(1, Math.min(99, qteFiche + d));
+    dessinerFiche();
+  };
+  /* Ajoute la quantité choisie puis referme la fiche : le client
+     revient au catalogue, le panier à jour. */
+  window.acheterDepuisFiche = () => {
+    const q = qteFiche;
+    ajouterAuPanier(idFiche, q);
+    fermerProduit();
+  };
+
+  function dessinerFiche(){
+    const p = (ent.produits || []).find(x => x.id === idFiche);
+    const z = document.getElementById('ficheProduit');
+    if (!p || !z) return;
+    const lg = L();
+    const vues = vuesDe(p);
+    const aVenir = p.etat === 'bientot';
+    const fini = p.etat === 'fini' && vendGoods();
+    const quand = p.dateDispo ? dateCourte(p.dateDispo, lg) : '';
+    const prix = prixDe(p);
+    const promo = p.prixPromo > 0 && p.prixPromo < p.prix;
+    const msg = encodeURIComponent(
+      (lg==='ht' ? 'Bonjou, mwen enterese nan : ' : 'Bonjour, je suis intéressé(e) par : ') + p.nom +
+      ' (' + prix.toLocaleString('fr-HT') + ' HTG)');
+    const v = ent.vente || {};
+
+    /* État du stock : une seule ligne, celle qui s'applique. */
+    const etat = aVenir
+      ? `<span class="badge" style="background:#F3EBFF;color:#6D28D9">⏳ ${lg==='ht'
+            ? (quand ? 'Byento disponib — ' + ech(quand) : 'Byento disponib')
+            : (quand ? 'Bientôt disponible — ' + ech(quand) : 'Bientôt disponible')}</span>`
+      : (vendGoods() ? (fini
+          ? `<span class="badge" style="background:var(--gris-clair);color:var(--gris)">${lg==='ht'?'Fini':'Épuisé'}</span>`
+          : (p.stockFaible
+            ? `<span class="badge" style="background:var(--orange-fond);color:#C4520E">${lg==='ht'?'Dènye inite yo':'Dernières unités'}</span>`
+            : `<span class="badge badge-vert">${lg==='ht'?'Disponib':'En stock'}</span>`)) : '');
+
+    /* Comment la commande sera remise : le client doit le savoir
+       avant d'acheter, pas au moment de payer. */
+    const remise = [];
+    if (peutCommander()) {
+      if (v.livraison) remise.push(lg==='ht'?'Livrezon':'Livraison à domicile');
+      if (v.cueillette) remise.push(lg==='ht'?'Vin chèche':'Retrait sur place');
+    }
+
+    const faits = [];
+    if (p.marque) faits.push([lg==='ht'?'Mak':'Marque', ech(p.marque)]);
+    if (p.rayon) faits.push([lg==='ht'?'Reyon':'Rayon', ech(p.rayon)]);
+    if (p.unite) faits.push([lg==='ht'?'Inite':'Unité', ech(p.unite)]);
+    if (remise.length) faits.push([lg==='ht'?'Remiz':'Remise', remise.join(' · ')]);
+    if (v.delaiPreparation) faits.push([lg==='ht'?'Delè':'Délai', ech(v.delaiPreparation)]);
+    if (v.minimumCommande > 0) faits.push([lg==='ht'?'Minimòm':'Minimum de commande',
+      (+v.minimumCommande).toLocaleString('fr-HT') + ' HTG']);
+
+    /* Le bouton d'achat dépend de l'état : acheter, précommander,
+       demander par WhatsApp, ou rien de cliquable du tout. */
+    let action = '';
+    if (p.precommandable) {
+      action = `<button class="btn btn-primaire" style="background:#6D28D9" onclick="acheterDepuisFiche()">⏳ ${
+        lg==='ht'?'Prekòmande':'Précommander'}</button>`;
+    } else if (aVenir || fini) {
+      action = ent.whatsapp
+        ? `<a class="btn btn-contour" target="_blank" rel="noopener" href="https://wa.me/${ent.whatsapp}?text=${msg}">${
+            lg==='ht'?'Mande enfòmasyon':'Me prévenir'}</a>`
+        : `<button class="btn" style="background:var(--gris-clair);color:var(--gris);cursor:not-allowed" disabled>${
+            aVenir ? (lg==='ht'?'Byento':'Bientôt') : (lg==='ht'?'Fini':'Épuisé')}</button>`;
+    } else if (peutCommander()) {
+      action = `<button class="btn btn-primaire" style="background:var(--marque)" onclick="acheterDepuisFiche()">🛒 ${
+        lg==='ht'?'Achte':'Acheter'}</button>`;
+    } else if (ent.whatsapp) {
+      action = `<a class="btn btn-succes" target="_blank" rel="noopener" href="https://wa.me/${ent.whatsapp}?text=${msg}">${
+        lg==='ht'?'Kòmande sou WhatsApp':'Commander sur WhatsApp'}</a>`;
+    }
+
+    // La quantité ne se choisit que si l'on peut réellement commander
+    const avecQte = !!(p.precommandable || (!aVenir && !fini && peutCommander()));
+
+    const estVideo = vueFiche === 'video';
+    const media = (vues.length || p.video)
+      ? `<div class="fp-media" onclick="ouvrirVisionneuse('${p.id}',${estVideo?'true':'false'},${estVideo?0:(vueFiche||0)})">
+           ${estVideo
+             ? (vues.length
+               ? `<img src="${vues[0]}" alt="${ech(p.nom)}">
+                  <span class="fp-loupe">▶ ${lg==='ht'?'Wè videyo':'Voir la vidéo'}</span>`
+               : `<div style="position:absolute;inset:0;display:grid;place-items:center;background:#111;color:#fff;font-size:34px">▶</div>`)
+             : `<img src="${vues[vueFiche] || vues[0]}" alt="${ech(p.nom)}">
+                <span class="fp-loupe">🔍 ${lg==='ht'?'Agrandi':'Agrandir'}</span>`}
+         </div>
+         ${(vues.length > 1 || p.video) ? `<div class="fp-vignettes">
+           ${vues.map((ph,i) => `<button class="${!estVideo && i===vueFiche?'on':''}"
+              style="background-image:url('${ph}')" aria-label="Photo ${i+1}"
+              onclick="changerVueFiche(${i})"></button>`).join('')}
+           ${p.video ? `<button class="${estVideo?'on':''}" style="background:#111;color:#fff;font-size:16px"
+              aria-label="Vidéo" onclick="changerVueFiche('video')">▶</button>` : ''}
+         </div>` : ''}`
+      : `<div class="fp-media sans"><span>🛍️</span></div>`;
+
+    z.innerHTML = `
+      <button class="fp-ferme" aria-label="${lg==='ht'?'Fèmen':'Fermer'}" onclick="fermerProduit()">✕</button>
+      <div class="fiche-prod">
+        <div>${media}</div>
+        <div>
+          <h3 class="fp-titre">${ech(p.nom)}</h3>
+          ${etat ? `<div class="fp-puces">${etat}</div>` : ''}
+          <p class="fp-prix">
+            ${promo ? `<s>${(+p.prix).toLocaleString('fr-HT')} HTG</s>` : ''}
+            ${prix.toLocaleString('fr-HT')} HTG${p.unite ? `<span class="unite"> / ${ech(p.unite)}</span>` : ''}
+          </p>
+          ${promo ? `<span class="fp-eco">${lg==='ht'?'Ou ekonomize':'Vous économisez'} ${
+            (p.prix - p.prixPromo).toLocaleString('fr-HT')} HTG</span>` : ''}
+          ${p.description ? `<p class="fp-desc">${ech(p.description)}</p>` : ''}
+          ${faits.length ? `<div class="fp-faits">${faits.map(([k,val]) =>
+            `<div><span>${k}</span><span>${val}</span></div>`).join('')}</div>` : ''}
+          ${avecQte ? `<div class="fp-qte">
+            <label>${lg==='ht'?'Kantite':'Quantité'}</label>
+            <div class="boite">
+              <button onclick="changerQteFiche(-1)" aria-label="−">−</button>
+              <strong>${qteFiche}</strong>
+              <button onclick="changerQteFiche(1)" aria-label="+">+</button>
+            </div>
+            <span class="petit muet">= ${(prix * qteFiche).toLocaleString('fr-HT')} HTG</span>
+          </div>` : ''}
+          <div class="fp-actions">
+            ${action}
+            ${p.versement && ent.financement
+              ? `<a class="btn-versement" style="margin-top:0" target="_blank" rel="noopener"
+                   href="${ech(ent.financement.url)}">💳 ${
+                   lg==='ht'?'Peye an vèsman':'Payer par versement'}</a>` : ''}
+            ${ent.whatsapp && action.indexOf('wa.me') === -1
+              ? `<a class="btn btn-contour btn-petit" target="_blank" rel="noopener"
+                   href="https://wa.me/${ent.whatsapp}?text=${msg}">${
+                   lg==='ht'?'Poze yon kesyon':'Poser une question'}</a>` : ''}
+            <button class="btn btn-fantome btn-petit" onclick="partagerProduit(event,'${p.id}','${
+              ech(p.nom).replace(/'/g,"&#39;")}')">🔗 ${lg==='ht'?'Pataje':'Partager'}</button>
+          </div>
+        </div>
+      </div>`;
+  }
+
+  // Fermeture en cliquant à côté de la fiche, comme les autres modales
+  document.addEventListener('click', (ev) => {
+    if (ev.target && ev.target.id === 'voileProduit') fermerProduit();
+  });
+
+  // ---- Catalogue public ----
+  let rayonActif = '';
+  /* Une entreprise de services dont le catalogue sert de vitrine n'a
+     pas de stock à gérer : afficher « Fini » n'aurait aucun sens. */
+  function vendGoods(){
+    /* Le serveur n'expose « vente » que si les commandes sont actives :
+       sa seule présence suffit donc à identifier un vrai commerce. */
+    return !!ent.vente;
+  }
+
+  function dessinerBoutique(){
+    const liste = ent.produits || [];
+    if (!liste.length) return;
+    const lg = (localStorage.getItem('langue') || 'fr');
+    /* Services et produits vivent désormais dans la même carte.
+       Le titre s'adapte à ce que l'entreprise propose réellement. */
+    const cs = document.getElementById('carteServices');
+    if (cs) cs.style.display = '';
+    const aServices = (ent.services || []).length > 0;
+    const titre = document.getElementById('titreOffre');
+    if (titre) titre.textContent = aServices
+      ? (lg==='ht' ? 'Sèvis ak pwodwi nou yo' : 'Nos services et produits')
+      : (lg==='ht' ? 'Pwodwi nou yo' : 'Nos produits');
+    const intro = document.getElementById('introOffre');
+    if (intro && vendGoods()) {
+      intro.style.display = '';
+      intro.textContent = lg==='ht'
+        ? 'Pri an goud. Chwazi sa ou vle a.'
+        : 'Prix en gourdes. Choisissez ce qui vous convient.';
+    }
+    const rayons = [...new Set(liste.map(p => p.rayon).filter(Boolean))];
+    const zr = document.getElementById('rayonsBoutique');
+    if (zr && rayons.length > 1) zr.style.display = '';
+    document.getElementById('rayonsBoutique').innerHTML = rayons.length > 1
+      ? `<button class="onglet-menu${rayonActif===''?' on':''}" onclick="filtrerRayon('')">${lg==='ht'?'Tout':'Tout'}</button>` +
+        rayons.map(r => `<button class="onglet-menu${rayonActif===r?' on':''}" onclick="filtrerRayon('${r.replace(/'/g,"\\'")}')">${ech(r)}</button>`).join('')
+      : '';
+    const vis = rayonActif ? liste.filter(p => p.rayon === rayonActif) : liste;
+    document.getElementById('grilleProduits').innerHTML = vis.map(p => {
+      const msg = encodeURIComponent(
+        (lg==='ht' ? 'Bonjou, mwen enterese nan : ' : 'Bonjour, je suis intéressé(e) par : ') + p.nom +
+        ' (' + ((p.prixPromo || p.prix)).toLocaleString('fr-HT') + ' HTG)');
+      const vues = (p.photos && p.photos.length) ? p.photos : (p.photo ? [p.photo] : []);
+      /* Trois états possibles, et un seul affiché : à venir, fini, en vente.
+         Les deux premiers ne concernent que les commerces — un salon de
+         coiffure n'a pas de stock à « finir ». */
+      const aVenir = p.etat === 'bientot';
+      const fini = p.etat === 'fini' && vendGoods();
+      const quand = p.dateDispo ? dateCourte(p.dateDispo, lg) : '';
+      const mention = aVenir
+        ? (lg==='ht' ? (quand ? 'BYENTO · ' + quand : 'BYENTO DISPONIB') : (quand ? 'BIENTÔT · ' + quand : 'BIENTÔT DISPONIBLE'))
+        : '';
+      /* Toute la carte ouvre la fiche du produit. Les commandes qui
+         vivent dessus — pastilles, partage, achat direct — arrêtent
+         le clic pour ne pas l'ouvrir par surprise. */
+      return `<div class="carte-produit${fini ? ' epuise' : ''}${aVenir ? ' avenir' : ''}" data-produit="${p.id}"
+        role="button" tabindex="0" onclick="ouvrirProduit('${p.id}')"
+        onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();ouvrirProduit('${p.id}')}">
+        ${vues.length ? `<div class="media-produit" data-vues="${vues.length}">
+            ${vues.map((ph,i) => `<div class="vue${i===0?' on':''}" style="background-image:url('${ph}')"></div>`).join('')}
+            ${p.video ? `<button class="badge-video" onclick="event.stopPropagation();ouvrirProduit('${p.id}',true)">▶ ${lg==='ht'?'Videyo':'Vidéo'}</button>` : ''}
+            ${vues.length > 1 ? `<div class="points-produit">${vues.map((_,i) =>
+              `<button class="${i===0?'on':''}" onclick="event.stopPropagation();changerVue('${p.id}',${i})" aria-label="Photo ${i+1}"></button>`).join('')}</div>` : ''}
+            ${aVenir ? `<span class="ruban-avenir">${ech(mention)}</span>` : ''}
+          </div>`
+          : `<div class="media-produit sans"><span>🛍️</span>
+            ${p.video ? `<button class="badge-video" onclick="event.stopPropagation();ouvrirProduit('${p.id}',true)">▶ ${lg==='ht'?'Videyo':'Vidéo'}</button>` : ''}
+            ${aVenir ? `<span class="ruban-avenir">${ech(mention)}</span>` : ''}</div>`}
+        <button class="part-produit" title="${lg==='ht'?'Pataje':'Partager'}" onclick="partagerProduit(event,'${p.id}','${ech(p.nom).replace(/'/g,"&#39;")}')">🔗</button>
+        <div class="corps-produit">
+          <strong>${ech(p.nom)}</strong>
+          ${p.marque?`<p class="desc-produit">${ech(p.marque)}</p>`:''}
+          ${p.description?`<p class="desc-produit">${ech(p.description)}</p>`:''}
+            ${aVenir
+            ? `<p class="etat-stock avenir">⏳ ${lg==='ht'
+                 ? (quand ? 'Byento disponib — ' + quand : 'Byento disponib')
+                 : (quand ? 'Bientôt disponible — ' + quand : 'Bientôt disponible')}</p>`
+            : (vendGoods() ? (fini
+              ? `<p class="etat-stock fini">${lg==='ht'?'Fini':'Fini'}</p>`
+              : (p.stockFaible
+                ? `<p class="etat-stock bientot">${lg==='ht'?'Dènye inite yo':'Dernières unités'}</p>`
+                : `<p class="etat-stock dispo">${lg==='ht'?'Disponib':'Disponible'}</p>`)) : '')}
+          <p class="prix-produit">
+            ${p.prixPromo ? `<s class="petit muet">${(+p.prix).toLocaleString('fr-HT')}</s> <strong>${(+p.prixPromo).toLocaleString('fr-HT')} HTG</strong>`
+                          : `<strong>${(+p.prix).toLocaleString('fr-HT')} HTG</strong>`}
+            ${p.unite?`<span class="petit muet">/${ech(p.unite)}</span>`:''}
+          </p>
+          ${p.versement && ent.financement
+            ? `<a class="btn-versement" target="_blank" rel="noopener" onclick="event.stopPropagation()" href="${ech(ent.financement.url)}"
+                 title="${lg==='ht'?'Peye an plizyè fwa ak Micro Crédit Solidarité':'Payer en plusieurs fois avec Micro Crédit Solidarité'}">
+                 💳 ${lg==='ht'?'Peye an vèsman':'Payer par versement'}</a>` : ''}
+          ${p.precommandable
+            /* Précommande ouverte : le client réserve son exemplaire
+               plutôt que de repartir les mains vides. */
+            ? `<button class="btn-precommande" onclick="event.stopPropagation();ajouterAuPanier('${p.id}')">⏳ ${lg==='ht'?'Prekòmande':'Précommander'}</button>`
+            : (aVenir || fini
+            ? (ent.whatsapp
+              ? `<a class="btn btn-contour btn-petit" style="width:100%;margin-top:8px" target="_blank" rel="noopener"
+                   onclick="event.stopPropagation()" href="https://wa.me/${ent.whatsapp}?text=${msg}">${lg==='ht'?'Mande enfòmasyon':'Me prévenir'}</a>`
+              : `<button class="btn btn-petit" style="width:100%;margin-top:8px;background:var(--gris-clair);color:var(--gris);cursor:not-allowed" disabled>${
+                   aVenir ? (lg==='ht'?'Byento':'Bientôt') : (lg==='ht'?'Fini':'Épuisé')}</button>`)
+            : (peutCommander()
+            ? `<button class="btn btn-primaire btn-petit" style="width:100%;margin-top:8px;background:var(--marque)" onclick="event.stopPropagation();ajouterAuPanier('${p.id}')">${lg==='ht'?'Achte':'Acheter'}</button>`
+            : (ent.whatsapp ? `<a class="btn btn-succes btn-petit" style="width:100%;margin-top:8px" target="_blank" rel="noopener"
+             onclick="event.stopPropagation()" href="https://wa.me/${ent.whatsapp}?text=${msg}">${lg==='ht'?'Kòmande':'Commander'}</a>` : '')))}
+        </div>
+      </div>`;
+    }).join('');
+  }
+  window.filtrerRayon = (r) => { rayonActif = r; dessinerBoutique(); };
+
+
+  // Agrandissement d'une photo de chambre
+  window.agrandirPhoto = (_, el) => {
+    const v = document.createElement('div');
+    v.className = 'voile ouvert'; v.style.alignItems = 'center';
+    v.onclick = () => v.remove();
+    v.innerHTML = `<img src="${el.src}" style="max-width:94vw;max-height:88vh;border-radius:14px;box-shadow:0 20px 60px rgba(0,0,0,.5)">`;
+    document.body.appendChild(v);
+  };
+
+  // ---- Service d'urgence ----
+  // Priorité absolue : mettre le numéro à portée immédiate. Aucun tri,
+  // aucun formulaire : dans une urgence, on appelle ou on se déplace.
+  function dessinerUrgence(){
+    const u = ent.urgence;
+    if (!u) return;
+    const lg = (localStorage.getItem('langue') || 'fr');
+    const etat = u.etat ? (ent.etatsRef || []).find(x => x.cle === u.etat) : null;
+    const tel = (u.telephone || '').replace(/[^\d+]/g, '');
+    const T = {
+      fr: { titre: 'Service d\'urgence', h24: 'Ouvert 24h/24, 7j/7', appeler: 'Appeler maintenant',
+            ambulance: 'Ambulance', moyens: 'Moyens disponibles', garde: 'Pharmacie de garde',
+            avert: "En cas d'urgence vitale, appelez immédiatement ou rendez-vous sur place. N'attendez pas de réponse en ligne.",
+            depuis: 'information déclarée il y a' , h: 'h' },
+      ht: { titre: 'Sèvis ijans', h24: 'Louvri 24è sou 24, 7 jou', appeler: 'Rele kounye a',
+            ambulance: 'Anbilans', moyens: 'Mwayen ki disponib', garde: 'Famasi de gad',
+            avert: "Si se yon ijans grav, rele oswa ale sou plas touswit. Pa tann yon repons sou entènèt.",
+            depuis: 'enfòmasyon deklare gen', h: 'è' }
+    }[lg];
+    const z = document.getElementById('bandeauUrgence');
+    z.style.display = '';
+    z.innerHTML = `<div class="bloc-urgence">
+      <div class="flex entre" style="gap:12px;flex-wrap:wrap;align-items:flex-start">
+        <div style="flex:1;min-width:200px">
+          <div class="flex" style="gap:8px;flex-wrap:wrap">
+            <strong style="font-size:18px">🚨 ${T.titre}</strong>
+            ${u.permanence ? `<span class="badge badge-vert">${T.h24}</span>` : ''}
+            ${etat ? `<span class="badge ${etat.badge}">${etat.ico} ${ech(lg==='ht'?etat.ht:etat.fr)}</span>` : ''}
+          </div>
+          ${!u.permanence && u.horaires ? `<p class="petit" style="margin-top:6px">🕐 ${ech(u.horaires)}</p>` : ''}
+          ${u.consigne ? `<p class="petit" style="margin-top:6px">ℹ️ ${ech(u.consigne)}</p>` : ''}
+          ${u.garde && u.garde.active ? `<p class="petit" style="margin-top:6px">💊 ${T.garde} : ${ech(u.garde.debut)} → ${ech(u.garde.fin)}</p>` : ''}
+          ${etat && u.etatDepuis !== null ? `<p class="petit" style="opacity:.75;margin-top:6px">${T.depuis} ${u.etatDepuis} ${T.h}</p>` : ''}
+        </div>
+        <div class="actions-urgence">
+          ${tel ? `<a class="btn-urgence" href="tel:${tel}">📞 ${T.appeler}<br><strong>${ech(u.telephone)}</strong></a>` : ''}
+          ${u.telephone2 ? `<a class="btn-urgence secondaire" href="tel:${u.telephone2.replace(/[^\d+]/g,'')}">📞 ${ech(u.telephone2)}</a>` : ''}
+          ${u.ambulance && u.telAmbulance ? `<a class="btn-urgence secondaire" href="tel:${u.telAmbulance.replace(/[^\d+]/g,'')}">🚑 ${T.ambulance}<br><strong>${ech(u.telAmbulance)}</strong></a>` : ''}
+        </div>
+      </div>
+      ${(u.capacites||[]).length ? `<div style="margin-top:12px">
+        <p class="petit" style="opacity:.85">${T.moyens} :</p>
+        <div class="puces-urgence">${u.capacites.map(k => {
+          const c = (ent.capacitesRef||{})[k];
+          return c ? `<span class="puce-urgence">${c.ico} ${ech(lg==='ht'?c.ht:c.fr)}</span>` : '';
+        }).join('')}</div></div>` : ''}
+      <p class="avert-urgence">⚠️ ${T.avert}</p>
+    </div>`;
+  }
+
+  // ---- Suivi public d'un dossier ----
+  const METIERS_DOSSIERS = ['notaire', 'arpenteur', 'avocat', 'comptable'];
+  function dessinerSuivi(){
+    if (METIERS_DOSSIERS.includes(ent.metier))
+      document.getElementById('carteSuivi').style.display = '';
+  }
+  window.chercherDossier = async () => {
+    const z = document.getElementById('resultatSuivi');
+    const ref = document.getElementById('suRef').value.trim();
+    const tel = document.getElementById('suTel').value.trim();
+    const lg = (localStorage.getItem('langue') || 'fr');
+    if (!ref || !tel) { z.innerHTML = `<p class="petit" style="color:var(--rouge)">${lg==='ht'?'Ranpli tou de jaden yo.':'Renseignez les deux champs.'}</p>`; return; }
+    z.innerHTML = `<p class="petit muet">${lg==='ht'?'Ap chèche…':'Recherche…'}</p>`;
+    try {
+      const d = await api('/api/dossiers/suivi','POST',{ slug, reference: ref, telephone: tel });
+      z.innerHTML = `<div class="panneau">
+        <div class="flex entre" style="gap:8px;flex-wrap:wrap">
+          <strong>${ech(d.objet)}</strong><span class="badge badge-bleu">${ech(d.statutLib)}</span>
+        </div>
+        <p class="petit muet" style="margin-top:4px">${lg==='ht'?'Referans':'Référence'} : ${ech(d.reference)} · ${lg==='ht'?'Louvri':'Ouvert'} ${ech(d.ouvertLe)}</p>
+        <div class="etapes-suivi">
+          ${d.etapes.map((e,i) => `<div class="etape-suivi${i < d.etapeIndex ? ' faite' : ''}${i === d.etapeIndex ? ' active' : ''}">
+             <span class="pastille">${i < d.etapeIndex ? '✓' : i+1}</span>
+             <span class="petit">${ech(lg==='ht' && e.ht ? e.ht : e.fr)}</span></div>`).join('')}
+        </div>
+        ${(d.pieces||[]).length ? `<p class="petit muet" style="margin-top:12px">${lg==='ht'?'Papye yo':'Pièces'} :</p>
+          <div class="puces-equip">${d.pieces.map(p => `<span class="puce-equip" style="${p.fournie?'':'background:var(--orange-fond);color:#C4520E'}">${p.fournie?'✓':'⏳'} ${ech(p.nom)}</span>`).join('')}</div>` : ''}
+        ${d.echeance ? `<p class="petit muet" style="margin-top:10px">📅 ${lg==='ht'?'Echeyans':'Échéance'} : <strong>${ech(d.echeance)}</strong></p>` : ''}
+        <p class="petit muet" style="margin-top:6px">${lg==='ht'?'Dènye mizajou':'Dernière mise à jour'} : ${ech(d.majLe)}</p>
+      </div>`;
+    } catch(e){ z.innerHTML = `<p class="petit" style="color:var(--rouge)">${ech(e.message)}</p>`; }
+  };
+
+  // ---- Inscriptions scolaires ----
+  let progChoisi = null;
+  const PERIODES_PUB = { mensuel:{fr:'par mois',ht:'pa mwa'}, trimestriel:{fr:'par trimestre',ht:'pa trimès'}, annuel:{fr:'par an',ht:'pa ane'} };
+  function dessinerProgrammes(){
+    const liste = ent.programmes || [];
+    if (!liste.length) return;
+    const lg = (localStorage.getItem('langue') || 'fr');
+    document.getElementById('carteProgrammes').style.display = '';
+    document.getElementById('listeProgrammes').innerHTML = liste.map(p => {
+      const complet = p.placesRestantes === 0;
+      return `<div class="panneau">
+        <div class="flex entre" style="align-items:flex-start;gap:10px;flex-wrap:wrap">
+          <div style="flex:1;min-width:180px">
+            <strong>${ech(p.nom)}</strong>
+            ${p.anneeScolaire?`<span class="badge badge-gris" style="margin-left:6px">${ech(p.anneeScolaire)}</span>`:''}
+            ${p.description?`<p class="petit muet" style="margin-top:4px">${ech(p.description)}</p>`:''}
+            <p class="petit muet" style="margin-top:6px">
+              ${p.fraisInscription?`${lg==='ht'?'Enskripsyon':'Inscription'} : <strong>${(+p.fraisInscription).toLocaleString('fr-HT')} HTG</strong>`:''}
+              ${p.scolarite?` • ${lg==='ht'?'Eskolarite':'Scolarité'} : <strong>${(+p.scolarite).toLocaleString('fr-HT')} HTG</strong> ${PERIODES_PUB[p.periodicite][lg]||''}`:''}
+            </p>
+            ${p.placesRestantes !== null ? `<p class="petit ${complet?'':'muet'}" style="${complet?'color:var(--rouge);font-weight:700':''}">${complet ? (lg==='ht'?'Konplè':'Complet') : `${p.placesRestantes} ${lg==='ht'?'plas ki rete':'places restantes'}`}</p>` : ''}
+          </div>
+          ${complet ? '' : `<button class="btn btn-primaire btn-petit" style="background:var(--marque)" onclick="choisirProgramme('${p.id}')">${lg==='ht'?'Enskri':'S\'inscrire'}</button>`}
+        </div></div>`;
+    }).join('');
+  }
+  window.choisirProgramme = (id) => {
+    progChoisi = (ent.programmes || []).find(p => p.id === id);
+    if (!progChoisi) return;
+    const lg = (localStorage.getItem('langue') || 'fr');
+    document.getElementById('titreInscription').textContent =
+      (lg==='ht'?'Demann enskripsyon — ':'Demande d\'inscription — ') + progChoisi.nom;
+    document.getElementById('docsProgramme').innerHTML = (progChoisi.documents||[]).length
+      ? `📎 ${lg==='ht'?'Dokiman pou pote':'Documents à fournir'} : ${progChoisi.documents.map(ech).join(', ')}` : '';
+    document.getElementById('formInscription').style.display = '';
+    document.getElementById('formInscription').scrollIntoView({ behavior:'smooth', block:'nearest' });
+  };
+  window.fermerInscription = () => { document.getElementById('formInscription').style.display = 'none'; progChoisi = null; };
+  window.envoyerInscription = async () => {
+    const err = document.getElementById('erreurInscription');
+    const eleve = document.getElementById('inEleve').value.trim();
+    const parent = document.getElementById('inParent').value.trim();
+    const tel = document.getElementById('inTel').value.trim();
+    if (!eleve || !parent || !tel) { err.textContent = "Le nom de l'élève, celui du responsable et le téléphone sont obligatoires."; return; }
+    try {
+      const r = await api('/api/inscriptions','POST',{
+        slug, programmeId: progChoisi.id, eleveNom: eleve,
+        eleveNaissance: document.getElementById('inNaissance').value,
+        eleveSexe: document.getElementById('inSexe').value,
+        ecoleProvenance: document.getElementById('inProvenance').value.trim(),
+        parentNom: parent, parentLien: document.getElementById('inLien').value.trim(),
+        parentTel: tel, parentEmail: document.getElementById('inCourriel').value.trim(),
+        message: document.getElementById('inMessage').value.trim()
+      });
+      document.getElementById('formInscription').innerHTML = `
+        <div class="centre" style="padding:10px 0">
+          <div style="width:52px;height:52px;border-radius:50%;background:var(--vert);color:#fff;display:grid;place-items:center;font-size:24px;margin:0 auto 12px">✓</div>
+          <h3>Demande envoyée !</h3>
+          <p class="petit muet" style="margin-top:8px">${ech(r.etablissement)} a bien reçu votre demande pour <strong>${ech(r.programme)}</strong>.
+          Vous serez prévenu par WhatsApp dès qu'elle sera étudiée.</p>
+          <p class="petit muet" style="margin-top:6px">Référence : <strong>${r.reference}</strong></p>
+          ${r.fraisInscription ? `<p class="petit" style="margin-top:8px">Frais d'inscription à prévoir : <strong>${(+r.fraisInscription).toLocaleString('fr-HT')} HTG</strong></p>` : ''}
+        </div>`;
+    } catch(e){ err.textContent = e.message; }
+  };
+
+  // ---- Informations propres au métier ----
+  async function dessinerInfosMetier(){
+    const champs = ent.champs || {};
+    if (!Object.keys(champs).length) return;
+    let ref;
+    try { ref = await api('/api/metiers'); } catch { return; }
+    const m = ref.METIERS[ent.metier];
+    if (!m) return;
+    const langue = (localStorage.getItem('langue') || 'fr');
+    const lignes = m.champs.map((c) => {
+      const d = ref.CHAMPS[c], v = champs[c];
+      if (!d || v === undefined || v === '' || v === false || (Array.isArray(v) && !v.length)) return '';
+      const lib = langue === 'ht' && d.ht ? d.ht : d.fr;
+      if (d.type === 'bool') return `<span class="puce-equip">✓ ${ech(lib)}</span>`;
+      const val = Array.isArray(v) ? v.join(', ') : v;
+      return `<div class="ligne-info"><span class="muet petit">${ech(lib)}</span><strong>${ech(String(val))}</strong></div>`;
+    }).filter(Boolean);
+    if (!lignes.length) return;
+    document.getElementById('carteInfosMetier').style.display = '';
+    document.getElementById('titreInfosMetier').textContent = `${m.ico} ${langue === 'ht' ? m.nom.ht : m.nom.fr}`;
+    const puces = lignes.filter(l => l.startsWith('<span'));
+    const infos = lignes.filter(l => !l.startsWith('<span'));
+    document.getElementById('listeInfosMetier').innerHTML =
+      (infos.join('') || '') + (puces.length ? `<div class="puces-equip" style="margin-top:10px">${puces.join('')}</div>` : '');
+  }
+
+  // ---- Formule tout inclus ----
+  function estResort(){ return ent.formule === 'resort'; }
+  function dessinerResort(){
+    if (!estResort() || !(ent.inclus || []).length) return;
+    const langue = (localStorage.getItem('langue') || 'fr');
+    document.getElementById('carteResort').style.display = '';
+    document.getElementById('listeInclus').innerHTML = ent.inclus.map(k => {
+      const r = (ent.inclusRef || {})[k];
+      if (!r) return '';
+      const lib = langue === 'ht' && r.ht ? r.ht : r.fr;
+      return `<span class="puce-inclus">${r.ico} ${ech(lib)}</span>`;
+    }).join('');
+    document.getElementById('noteFormule').textContent = ent.noteFormule || '';
+  }
+
+  // ---- Carte du restaurant et du bar ----
+  const CATS_MENU = {
+    entree:{fr:'Entrées',ht:'Antre',ico:'🥗'}, plat:{fr:'Plats',ht:'Manje',ico:'🍽️'},
+    accompagnement:{fr:'Accompagnements',ht:'Akonpayman',ico:'🍚'}, dessert:{fr:'Desserts',ht:'Desè',ico:'🍰'},
+    boisson:{fr:'Boissons',ht:'Bwason',ico:'🧃'}, cocktail:{fr:'Cocktails',ht:'Koktèl',ico:'🍹'},
+    biere:{fr:'Bières',ht:'Byè',ico:'🍺'}, vin:{fr:'Vins',ht:'Diven',ico:'🍷'},
+    spiritueux:{fr:'Spiritueux',ht:'Alkòl fò',ico:'🥃'}
+  };
+  const ORDRE_MENU = ['entree','plat','accompagnement','dessert','boisson','cocktail','biere','vin','spiritueux'];
+  let filtreMenu = '';
+
+  function libCat(c){
+    const langue = (localStorage.getItem('langue') || 'fr');
+    return langue === 'ht' ? CATS_MENU[c].ht : CATS_MENU[c].fr;
+  }
+  function dessinerMenu(){
+    const carte = ent.carte || [];
+    if (!carte.length) return;
+    document.getElementById('carteMenu').style.display = '';
+    if (estResort()) {
+      const langue = (localStorage.getItem('langue') || 'fr');
+      const intro = document.querySelector('#carteMenu p[data-i18n="menu.intro"]');
+      if (intro) {
+        intro.removeAttribute('data-i18n');
+        intro.textContent = langue === 'ht'
+          ? 'Tout sa ki nan kat la enkli nan sejou ou.'
+          : 'Tout ce qui figure sur cette carte est compris dans votre séjour.';
+      }
+    }
+    const presentes = ORDRE_MENU.filter(c => carte.some(a => a.categorie === c));
+    const langue = (localStorage.getItem('langue') || 'fr');
+    document.getElementById('ongletsMenu').innerHTML =
+      `<button class="onglet-menu${filtreMenu===''?' on':''}" onclick="filtrerMenu('')">${langue==='ht'?'Tout':'Tout'}</button>` +
+      presentes.map(c => `<button class="onglet-menu${filtreMenu===c?' on':''}" onclick="filtrerMenu('${c}')">${CATS_MENU[c].ico} ${ech(libCat(c))}</button>`).join('');
+    const cats = filtreMenu ? [filtreMenu] : presentes;
+    document.getElementById('listeMenu').innerHTML = cats.map(c => {
+      const arts = carte.filter(a => a.categorie === c);
+      if (!arts.length) return '';
+      return `<h3 style="font-size:15px;margin:18px 0 4px">${CATS_MENU[c].ico} ${ech(libCat(c))}</h3>` +
+        arts.map(a => `<div class="ligne-menu">
+          ${a.photo ? `<img src="${a.photo}" alt="${ech(a.nom)}" style="width:74px;height:56px;object-fit:cover;border-radius:10px;flex-shrink:0">` : ''}
+          <div style="flex:1">
+            <div class="flex entre" style="align-items:flex-start;gap:10px">
+              <strong>${ech(a.nom)}</strong>
+              ${estResort()
+                ? `<span class="mention-inclus">${(localStorage.getItem('langue')||'fr')==='ht' ? 'Enkli' : 'Inclus'}</span>`
+                : `<span class="prix-menu">${(+a.prix).toLocaleString('fr-HT')} HTG</span>`}
+            </div>
+            ${a.description ? `<p class="petit muet">${ech(a.description)}</p>` : ''}
+            ${a.volume ? `<p class="petit muet">${ech(a.volume)}</p>` : ''}
+          </div></div>`).join('');
+    }).join('');
+  }
+  window.filtrerMenu = (c) => { filtreMenu = c; dessinerMenu(); };
+
+  // ---- Module Chambres & Séjours ----
+  if (ent.chambres && ent.chambres.length) {
+    document.getElementById('carteChambres').style.display = '';
+    document.getElementById('listeChambres').innerHTML = ent.chambres.map(c => `
+      <div class="flex" style="gap:12px;padding:10px 0;border-bottom:1px solid var(--bordure);align-items:flex-start">
+        ${c.photo ? `<img src="${c.photo}" alt="${ech(c.nom)}" style="width:86px;height:64px;object-fit:cover;border-radius:10px;flex-shrink:0">` : `<div style="width:86px;height:64px;border-radius:10px;background:linear-gradient(135deg,var(--marque),var(--marque2));display:grid;place-items:center;font-size:26px;flex-shrink:0">🛏️</div>`}
+        <div style="flex:1">
+          <div class="flex entre"><strong>${ech(c.nom)}</strong><strong style="color:var(--marque)">${(+c.prixNuit).toLocaleString('fr-HT')} HTG<span class="muet petit">/nuit</span></strong></div>
+          <p class="petit muet">${ech(c.description || '')}</p>
+          <p class="petit muet">👥 ${c.capacite} pers. max • ${c.quantite} chambre${c.quantite > 1 ? 's' : ''} de ce type</p>
+          ${(c.photos || []).length > 1 ? `<div class="galerie-pub">${c.photos.map((ph,i)=>`
+            <img src="${ph}" alt="${ech(c.nom)}" loading="lazy" class="${i===0?'on':''}" onclick="agrandirPhoto('${ph.slice(0,30)}',this)">`).join('')}</div>` : ''}
+          ${(c.equipements || []).length ? `<div class="puces-equip">${c.equipements.map(k => refEquip(k)).filter(Boolean).join('')}</div>` : ''}
+        </div>
+      </div>`).join('');
+    const sel = document.getElementById('sjChambre');
+    sel.innerHTML = ent.chambres.map(c => `<option value="${c.id}">${ech(c.nom)} — ${(+c.prixNuit).toLocaleString('fr-HT')} HTG/nuit</option>`).join('');
+    const auj = new Date(), dem = new Date(Date.now() + 86400000);
+    document.getElementById('sjArrivee').min = auj.toISOString().slice(0,10);
+    document.getElementById('sjDepart').min = dem.toISOString().slice(0,10);
+    document.getElementById('sjChambre').addEventListener('change', dessinerPlans);
+    dessinerPlans(); dessinerPolitiques(); dessinerServicesHotel();
+    // L'appel est différé : verifierSejour est assignée plus bas dans cette
+    // fonction, la référencer directement ici lèverait une ReferenceError
+    // qui interromprait tout le rendu de la page.
+    ['sjArrivee','sjDepart','sjChambre','sjPersonnes','sjPlan'].forEach((id) => {
+      const el = document.getElementById(id);
+      if (!el) return;
+      const relancer = () => { if (typeof window.verifierSejour === 'function') window.verifierSejour(); };
+      el.addEventListener('change', relancer);
+      el.addEventListener('input', relancer);
+    });
+  }
+
+
+
+  // ---- Services de l'hôtel, présentés avec les chambres ----
+  function dessinerServicesHotel(){
+    const z = document.getElementById('servicesHotel');
+    const services = ent.services || [];
+    if (!z || !services.length) return;
+    const lg = (localStorage.getItem('langue') || 'fr');
+    z.innerHTML = `<h3 style="font-size:15px;margin:18px 0 6px">✨ ${lg==='ht'?'Sèvis otèl la':'Services de l\'établissement'}</h3>
+      ${services.map(s => `<div class="ligne-menu">
+        <div style="flex:1">
+          <strong>${ech(s.nom)}</strong>
+          ${s.duree ? `<p class="petit muet">${s.duree} min</p>` : ''}
+        </div>
+        <div style="text-align:right">
+          <span class="prix-menu">${(+s.prix).toLocaleString('fr-HT')} HTG</span>
+          ${s.duree ? `<br><button class="btn btn-contour btn-petit" style="margin-top:6px" onclick="choisirService('${s.id}')">${lg==='ht'?'Rezève':'Réserver'}</button>` : ''}
+        </div>
+      </div>`).join('')}`;
+  }
+
+  // ---- Politiques de l'établissement, visibles avant de réserver ----
+  function dessinerPolitiques(){
+    const h = ent.hotel || {}, lg = (localStorage.getItem('langue') || 'fr');
+    const l = [];
+    if (h.checkin || h.checkout)
+      l.push(`🕐 ${lg==='ht'?'Arive':'Arrivée'} ${h.checkin || '—'} · ${lg==='ht'?'Depa':'Départ'} ${h.checkout || '—'}`);
+    if (h.sejourMin) l.push(`📅 ${lg==='ht'?'Minimòm':'Minimum'} ${h.sejourMin} ${lg==='ht'?'nwit':'nuit(s)'}`);
+    if (h.acompte) l.push(`💳 ${lg==='ht'?'Depo':'Acompte'} ${h.acompte} %`);
+    if (h.delaiAnnulation) l.push(`↩️ ${lg==='ht'?'Anilasyon gratis jiska':'Annulation gratuite jusqu\'à'} ${h.delaiAnnulation} ${lg==='ht'?'jou anvan':'jours avant'}`);
+    if (h.animaux) l.push('🐕 ' + (lg==='ht'?'Bèt aksepte':'Animaux acceptés'));
+    const z = document.getElementById('politiquesHotel');
+    if (!z) return;
+    z.innerHTML = (l.length ? `<div class="puces-equip">${l.map(x => `<span class="puce-equip">${ech(x)}</span>`).join('')}</div>` : '')
+      + (h.annulation ? `<p style="margin-top:8px">${ech(h.annulation)}</p>` : '')
+      + (h.conditions ? `<p style="margin-top:4px">${ech(h.conditions)}</p>` : '');
+  }
+  // Plans tarifaires proposés pour la chambre choisie
+  function dessinerPlans(){
+    const idCh = document.getElementById('sjChambre').value;
+    const plans = (ent.tarifs || []).filter(x => !x.chambreId || x.chambreId === idCh);
+    const bloc = document.getElementById('blocPlans'), sel = document.getElementById('sjPlan');
+    if (!plans.length) { bloc.style.display = 'none'; sel.innerHTML = ''; return; }
+    const lg = (localStorage.getItem('langue') || 'fr');
+    bloc.style.display = '';
+    sel.innerHTML = plans.map(x => {
+      const bits = [];
+      if (x.prixNuit) bits.push((+x.prixNuit).toLocaleString('fr-HT') + ' HTG/' + (lg==='ht'?'nwit':'nuit'));
+      if (x.petitDejeuner) bits.push(lg==='ht'?'ti dejene':'petit-déjeuner');
+      if (!x.remboursable) bits.push(lg==='ht'?'pa ranbousab':'non remboursable');
+      return `<option value="${x.id}">${ech(x.nom)}${bits.length?' — '+ech(bits.join(', ')):''}</option>`;
+    }).join('');
+  }
+
+  window.verifierSejour = async () => {
+    const a = document.getElementById('sjArrivee').value, d = document.getElementById('sjDepart').value;
+    const zone = document.getElementById('sjDispo'), coord = document.getElementById('sjCoordonnees');
+    const lg = (localStorage.getItem('langue') || 'fr');
+    const alerte = (txt) => { zone.innerHTML = `<div style="background:var(--orange-fond);color:#C4520E;border-radius:10px;padding:12px 14px" class="petit">${ech(txt)}</div>`; };
+    coord.style.display = 'none';
+    if (!a || !d) {
+      zone.innerHTML = `<p class="petit muet">${lg==='ht'?'Chwazi dat arive ak dat depa.':"Choisissez la date d'arrivée et la date de départ."}</p>`;
+      return;
+    }
+    if (d <= a) { alerte(lg==='ht' ? 'Dat depa a dwe apre dat arive a.' : 'La date de départ doit être après la date d\'arrivée.'); return; }
+    // La capacité de la chambre est vérifiée avant d'interroger le serveur
+    const idCh = document.getElementById('sjChambre').value;
+    const ch = (ent.chambres || []).find(x => x.id === idCh);
+    const nb = +document.getElementById('sjPersonnes').value || 1;
+    if (ch && nb > ch.capacite) {
+      alerte(lg==='ht'
+        ? `Chanm sa a pran ${ch.capacite} moun maksimòm. Chwazi yon lòt tip chanm.`
+        : `Cette chambre accueille ${ch.capacite} personne${ch.capacite>1?'s':''} au maximum. Choisissez un autre type de chambre.`);
+      return;
+    }
+    zone.innerHTML = `<p class="petit muet">${lg==='ht'?'Ap verifye…':'Vérification…'}</p>`;
+    try {
+      const plan = document.getElementById('sjPlan').value;
+      const r = await api(`/api/disponibilites-sejour?slug=${slug}&chambre=${document.getElementById('sjChambre').value}&arrivee=${a}&depart=${d}${plan?'&plan='+plan:''}`);
+      if (r.disponible) {
+        const saisons = [...new Set((r.detail||[]).map(x => x.saison).filter(Boolean))];
+        zone.innerHTML = `<div style="background:#D1FADF;border-radius:10px;padding:14px" class="petit">
+          <strong>✅ ${lg==='ht'?'Disponib':'Disponible'}</strong>${r.plan?` — ${ech(r.plan.nom)}`:''}
+          <div class="recap" style="background:rgba(255,255,255,.6);margin-top:10px">
+            <div><span>${r.nuits} ${lg==='ht'?'nwit':'nuit(s)'}${saisons.length?` (${ech(saisons.join(', '))})`:''}</span><span>${(+r.sousTotal).toLocaleString('fr-HT')} HTG</span></div>
+            ${(r.taxes||[]).map(tx => `<div><span>${ech(tx.nom)}</span><span>${(+tx.montant).toLocaleString('fr-HT')} HTG</span></div>`).join('')}
+            <div class="total"><span>Total</span><span>${(+r.total).toLocaleString('fr-HT')} HTG</span></div>
+            ${r.acompte?`<div style="color:#07684A;font-weight:700"><span>${lg==='ht'?'Depo pou peye':'Acompte à régler'} (${r.pourcentageAcompte} %)</span><span>${(+r.acompte).toLocaleString('fr-HT')} HTG</span></div>`:''}
+          </div>
+          ${r.plan && !r.plan.remboursable ? `<p style="margin-top:8px;color:#C4520E;font-weight:700">⚠ ${lg==='ht'?'Fòmil sa a pa ranbousab.':'Cette formule n\'est pas remboursable.'}</p>` : ''}
+        </div>`;
+        coord.style.display = '';
+      } else {
+        zone.innerHTML = `<div style="background:#FEE4E2;border-radius:10px;padding:12px 14px" class="petit">❌ Complet sur ces dates. Essayez d'autres dates ou un autre type de chambre.</div>`;
+      }
+    } catch (err) { zone.innerHTML = `<div style="background:#FEE4E2;border-radius:10px;padding:12px 14px" class="petit">${ech(err.message)}</div>`; }
+  };
+
+  window.reserverSejour = async () => {
+    const nom = document.getElementById('sjNom').value.trim();
+    const tel = document.getElementById('sjTel').value.trim();
+    if (!nom || !tel) { toast('Nom et téléphone obligatoires.'); return; }
+    try {
+      const r = await api('/api/sejours', 'POST', {
+        slug, chambreId: document.getElementById('sjChambre').value,
+        arrivee: document.getElementById('sjArrivee').value, depart: document.getElementById('sjDepart').value,
+        nbPersonnes: +document.getElementById('sjPersonnes').value || 1,
+        planId: document.getElementById('sjPlan').value || '',
+        clientNom: nom, clientTel: tel, clientEmail: document.getElementById('sjEmail').value.trim()
+      });
+      document.getElementById('sjCoordonnees').style.display = 'none';
+      document.getElementById('sjPaiement').style.display = '';
+      /* Le montant vient du serveur, qui seul fait le calcul. Il était
+         auparavant relu dans le texte de la page : un espace insécable dans
+         « 5 000 HTG » suffisait à le rendre illisible, et le paiement
+         s'arrêtait sur « Montant invalide ». */
+      const aPayer = +r.aPayer || +r.acompte || +r.prix || 0;
+      window.sjourMontant = aPayer;
+      const lgp = (localStorage.getItem('langue') || 'fr');
+      const partiel = +r.acompte > 0 && +r.acompte < +r.prixTotal;
+      document.getElementById('montantPaiement').textContent = aPayer
+        ? (partiel
+            ? `${lgp === 'ht' ? 'Depo pou peye' : 'Acompte à régler'} : ${aPayer.toLocaleString('fr-HT')} HTG ${lgp === 'ht' ? 'sou' : 'sur'} ${(+r.prixTotal).toLocaleString('fr-HT')} HTG`
+            : `${lgp === 'ht' ? 'Kòb pou peye' : 'Montant à payer'} : ${aPayer.toLocaleString('fr-HT')} HTG`)
+        : '';
+      window.sjourId = r.reference;  // Stocker la référence pour le paiement
+      toast('Demande de séjour envoyée ! Procédez au paiement pour confirmer.');
+    } catch (err) { toast(err.message); }
+  };
+
+  window.initierPaiement = async (type) => {
+    if (!window.sjourId) { toast('Enregistrez d\'abord votre demande de séjour.'); return; }
+    try {
+      const result = await api('/api/paiements/ouvrir', 'POST', {
+        commandeType: 'sejour', commandeId: window.sjourId || '', slug
+      });
+      if (result.ok && (result.urlInterne || result.urlPaiement)) {
+        // Page de règlement Konekte, qui héberge la passerelle dans une carte
+        toast('Ouverture du paiement…');
+        setTimeout(() => { window.location.href = result.urlInterne || result.urlPaiement; }, 400);
+      } else toast(result.erreur || 'Erreur paiement');
+    } catch (err) { toast(err.message); }
+  };
+  document.getElementById('listeServices').innerHTML += ent.services.map(s => {
+    const vues = (s.photos && s.photos.length) ? s.photos : (s.photo ? [s.photo] : []);
+    return `
+    <div class="ligne-service${vues.length ? ' avec-photo' : ''}">
+      ${vues.length ? `<button class="photo-service" onclick="voirService('${s.id}')"
+          style="background-image:url('${vues[0]}')" aria-label="Voir les photos">
+          ${vues.length > 1 ? `<span class="compte-photos">${vues.length}</span>` : ''}
+        </button>` : ''}
+      <div class="info-service">
+        <strong>${ech(s.nom)}</strong>
+        ${s.description ? `<div class="petit muet desc-service">${ech(s.description)}</div>` : ''}
+        <div class="petit muet">⏱ ${s.duree} min</div>
+      </div>
+      <div class="prix-service"><strong>${htg(s.prix)}</strong>
+        <button class="btn btn-contour btn-petit" onclick="choisirService('${s.id}')">Choisir</button></div>
+    </div>`;
+    /* Rien n'est affiché quand il n'y a pas de service : un commerce qui
+       ne vend que des produits n'a pas à annoncer un manque. La carte
+       porte déjà le titre « Nos produits » dans ce cas. */
+  }).join('');
+
+  document.getElementById('listeAvis').innerHTML = ent.avis.length ? ent.avis.map(a => `
+    <div style="padding:12px 0;border-bottom:1px solid var(--bordure)">
+      <div class="flex entre"><strong class="petit">${ech(a.clientNom)}</strong><span class="etoiles petit">${etoiles(a.note)}</span></div>
+      <p class="petit muet" style="margin-top:4px">${ech(a.commentaire)}</p>
+    </div>`).join('') : '<p class="muet petit">Aucun avis pour le moment. Soyez le premier à partager votre expérience !</p>';
+
+  document.getElementById('infos').innerHTML = `
+    <p>📍 ${ech(ent.adresse) || '—'}</p>
+    <p style="margin-top:6px">📞 ${ech(ent.telephone) || '—'}</p>
+    ${(ent.latitude != null && ent.longitude != null) ? `<a class="btn btn-contour btn-petit mt" target="_blank" rel="noopener" href="https://www.google.com/maps/dir/?api=1&destination=${ent.latitude},${ent.longitude}">🧭 Itinéraire</a>` : ''}`;
+  document.getElementById('horaires').innerHTML = ['lun','mar','mer','jeu','ven','sam','dim'].map(j => {
+    // Jour manquant : on affiche « Fermé » plutôt que de laisser la page planter
+    const h = (ent.horaires && ent.horaires[j]) || { ouvert: false };
+    return `<div><span>${NOMS_JOURS[j]}</span><span class="${h.ouvert ? '' : 'muet'}">${h.ouvert ? h.debut + ' – ' + h.fin : 'Fermé'}</span></div>`;
+  }).join('');
+  document.getElementById('equipe').innerHTML = ent.employes.map(x => `
+    <div class="flex" style="padding:6px 0"><span class="avatar">${ech(x.nom.split(' ').map(w=>w[0]).join('').slice(0,2))}</span>
+    <div><strong class="petit">${ech(x.nom)}</strong><div class="petit muet">${ech(x.poste)}</div></div></div>`).join('') || '<p class="muet petit">—</p>';
+
+  // Sans service au catalogue, les cartes Services et Réservation n'ont pas lieu d'être
+  // (cas d'un hôtel, d'une boutique ou d'un établissement qui ne prend pas de rendez-vous)
+  // La carte Services disparaît si l'établissement n'en a aucun, ou s'il s'agit
+  // d'un hôtel : ses prestations sont alors présentées avec les chambres.
+  const estHotel = (ent.chambres || []).length > 0;
+  /* La carte réunit services et produits : elle ne disparaît que si
+     l'entreprise n'a ni l'un ni l'autre. Un hôtel présente ses
+     prestations avec ses chambres, sauf s'il vend aussi des produits. */
+  const aQuelqueChose = (ent.services || []).length || (ent.produits || []).length;
+  if (!aQuelqueChose || (estHotel && !(ent.produits || []).length)) {
+    const cs = document.getElementById('carteServices'); if (cs) cs.style.display = 'none';
+  }
+  // Le titre reflète ce qui est présenté, même sans produits
+  if ((ent.services || []).length && !(ent.produits || []).length) {
+    const lgt = (localStorage.getItem('langue') || 'fr');
+    const titre = document.getElementById('titreOffre');
+    if (titre) titre.textContent = lgt === 'ht' ? 'Sèvis nou yo' : 'Nos services';
+  }
+  if (!(ent.services || []).length) {
+    const cr = document.getElementById('carteResa'); if (cr) cr.style.display = 'none';
+  }
+  dessinerBoutique();
+  ouvrirProduitPartage();
+  dessinerUrgence();
+  dessinerSuivi();
+  dessinerProgrammes();
+  dessinerInfosMetier();
+  dessinerResort();
+  dessinerMenu();
+  dessinerPas();
+  initCarte();
+}
+
+// ===== Carte de localisation et distance =====
+let carteLeaflet = null, marqueurClient = null, ligneDistance = null;
+
+function distanceKm(lat1, lon1, lat2, lon2) {
+  const R = 6371, rad = d => d * Math.PI / 180;
+  const dLat = rad(lat2 - lat1), dLon = rad(lon2 - lon1);
+  const a = Math.sin(dLat / 2) ** 2 + Math.cos(rad(lat1)) * Math.cos(rad(lat2)) * Math.sin(dLon / 2) ** 2;
+  return 2 * R * Math.asin(Math.sqrt(a));
+}
+
+function initCarte(essai = 0) {
+  if (ent.latitude == null || ent.longitude == null) return;  // pas de position enregistrée
+  const section = document.getElementById('carteLocalisation');
+  section.style.display = '';
+  if (typeof L === 'undefined') {
+    // Leaflet est chargé en différé : on réessaie brièvement avant d'abandonner
+    if (essai < 20) return setTimeout(() => initCarte(essai + 1), 250);
+    document.getElementById('mapDistance').innerHTML =
+      '<p class="petit muet" style="padding:16px">Carte indisponible (connexion requise).</p>';
+    document.getElementById('btnMaPosition').style.display = 'none';
+    return;
+  }
+  if (carteLeaflet) return;  // déjà initialisée
+  carteLeaflet = L.map('mapDistance').setView([ent.latitude, ent.longitude], 15);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    maxZoom: 19, attribution: '© OpenStreetMap'
+  }).addTo(carteLeaflet);
+  L.marker([ent.latitude, ent.longitude]).addTo(carteLeaflet)
+    .bindPopup(`<strong>${ech(ent.nom)}</strong><br>${ech(ent.adresse || '')}`).openPopup();
+  document.getElementById('infoDistance').textContent = 'Position de l\'établissement.';
+}
+
+function afficherMaPosition() {
+  if (!carteLeaflet) return;
+  const btn = document.getElementById('btnMaPosition');
+  const info = document.getElementById('infoDistance');
+  if (!navigator.geolocation) { info.textContent = 'Votre navigateur ne permet pas la géolocalisation.'; return; }
+  btn.disabled = true; info.textContent = 'Recherche de votre position…';
+  navigator.geolocation.getCurrentPosition(pos => {
+    btn.disabled = false;
+    const cLat = pos.coords.latitude, cLng = pos.coords.longitude;
+    const eLat = ent.latitude, eLng = ent.longitude;
+    if (marqueurClient) carteLeaflet.removeLayer(marqueurClient);
+    if (ligneDistance) carteLeaflet.removeLayer(ligneDistance);
+    marqueurClient = L.circleMarker([cLat, cLng], { radius: 8, color: '#16A34A', fillColor: '#16A34A', fillOpacity: .9 })
+      .addTo(carteLeaflet).bindPopup('Vous êtes ici');
+    ligneDistance = L.polyline([[cLat, cLng], [eLat, eLng]], { color: ent.couleur || '#2563EB', weight: 3, dashArray: '8 6' })
+      .addTo(carteLeaflet);
+    carteLeaflet.fitBounds(ligneDistance.getBounds(), { padding: [30, 30] });
+    const d = distanceKm(cLat, cLng, eLat, eLng);
+    info.innerHTML = `Distance à vol d'oiseau : <strong>${d < 1 ? Math.round(d * 1000) + ' m' : d.toFixed(1) + ' km'}</strong>`;
+  }, err => {
+    btn.disabled = false;
+    info.textContent = err.code === 1
+      ? 'Autorisation refusée. Activez la localisation pour voir la distance.'
+      : 'Position introuvable. Réessayez.';
+  }, { enableHighAccuracy: true, timeout: 12000 });
+}
+
+function choisirService(id) {
+  resa.service = ent.services.find(s => s.id === id);
+  resa.pas = 2; resa.date = ''; resa.heure = '';
+  dessinerPas();
+  document.getElementById('carteResa').scrollIntoView({ behavior: 'smooth' });
+}
+
+function dessinerPas() {
+  document.querySelectorAll('#barrePas .pas').forEach((el, i) => el.classList.toggle('fait', i < resa.pas));
+  const z = document.getElementById('zonePas');
+  const min = new Date().toISOString().slice(0, 10);
+
+  if (resa.pas === 1) {
+    z.innerHTML = `<p class="petit muet">Étape 1 sur 4 — Choisissez un service</p>
+      <div style="display:grid;gap:8px;margin-top:12px">
+      ${ent.services.map(s => `<button class="creneau" style="text-align:left;padding:11px 14px" onclick="choisirService('${s.id}')">${ech(s.nom)} <span class="muet" style="font-weight:400">• ${s.duree} min • ${htg(s.prix)}</span></button>`).join('')}
+      </div>`;
+  }
+  if (resa.pas === 2) {
+    z.innerHTML = `<p class="petit muet">Étape 2 sur 4 — <strong>${ech(resa.service.nom)}</strong> : choisissez une date</p>
+      <label>Date du rendez-vous</label>
+      <input type="date" id="champDate" min="${min}" value="${resa.date || min}">
+      <div class="flex mt" style="justify-content:space-between">
+        <button class="btn btn-fantome btn-petit" onclick="resa.pas=1;dessinerPas()">← Retour</button>
+        <button class="btn btn-primaire" style="background:var(--marque)" onclick="validerDate()">Voir les créneaux</button>
+      </div>`;
+  }
+  if (resa.pas === 3) chargerCreneaux();
+  if (resa.pas === 4) {
+    z.innerHTML = `<p class="petit muet">Étape 4 sur 4 — Vos coordonnées</p>
+      <div class="recap mt">
+        <div><span>Service</span><strong>${ech(resa.service.nom)}</strong></div>
+        <div><span>Date</span><strong>${dateFR(resa.date)}</strong></div>
+        <div><span>Heure</span><strong>${resa.heure}</strong></div>
+        <div><span>Prix</span><strong>${htg(resa.service.prix)}</strong></div>
+      </div>
+      <label>Nom complet *</label><input id="cNom" placeholder="Ex : Jean Michel">
+      <label>Téléphone (WhatsApp) *</label><input id="cTel" placeholder="Ex : +509 3712 0000">
+      <label>Adresse email</label><input id="cEmail" type="email" inputmode="email" placeholder="vous@exemple.com">
+      <p class="aide">C'est par là que vous recevrez la confirmation et le rappel de votre rendez-vous.</p>
+      <div class="champ-erreur" id="erreurResa"></div>
+      <div class="flex" style="justify-content:space-between">
+        <button class="btn btn-fantome btn-petit" onclick="resa.pas=3;dessinerPas()">← Retour</button>
+        <button class="btn btn-primaire" style="background:var(--marque)" onclick="confirmerResa()">Confirmer le rendez-vous</button>
+      </div>`;
+  }
+}
+
+function validerDate() {
+  resa.date = document.getElementById('champDate').value;
+  if (!resa.date) return toast('Choisissez une date.');
+  resa.pas = 3; dessinerPas();
+}
+
+async function chargerCreneaux() {
+  const z = document.getElementById('zonePas');
+  z.innerHTML = '<p class="petit muet">Chargement des disponibilités…</p>';
+  let creneaux;
+  try {
+    ({ creneaux } = await api(`/api/disponibilites?slug=${slug}&service=${resa.service.id}&date=${resa.date}`));
+  } catch (e) {
+    z.innerHTML = `<p class="petit" style="color:var(--rouge,#DC2626)">Impossible de charger les disponibilités : ${ech(e.message || 'erreur réseau')}</p>
+      <div class="flex mt" style="gap:8px">
+        <button class="btn btn-fantome btn-petit" onclick="resa.pas=2;dessinerPas()">← Changer la date</button>
+        <button class="btn btn-contour btn-petit" onclick="chargerCreneaux()">Réessayer</button>
+      </div>`;
+    return;
+  }
+  z.innerHTML = `<p class="petit muet">Étape 3 sur 4 — Créneaux du <strong>${dateFR(resa.date)}</strong></p>
+    ${creneaux.length ? `<div class="creneaux">${creneaux.map(h => `<button class="creneau" onclick="choisirHeure('${h}', this)">${h}</button>`).join('')}</div>`
+      : '<p class="muet petit mt">Aucun créneau disponible ce jour-là. Choisissez une autre date.</p>'}
+    <div class="flex mt" style="justify-content:space-between">
+      <button class="btn btn-fantome btn-petit" onclick="resa.pas=2;dessinerPas()">← Changer la date</button>
+      <button class="btn btn-primaire" style="background:var(--marque)" id="btnSuite" disabled onclick="resa.pas=4;dessinerPas()">Continuer</button>
+    </div>`;
+}
+
+function choisirHeure(h, el) {
+  resa.heure = h;
+  document.querySelectorAll('.creneau').forEach(c => c.classList.remove('choisi'));
+  el.classList.add('choisi');
+  document.getElementById('btnSuite').disabled = false;
+}
+
+async function confirmerResa() {
+  const nom = document.getElementById('cNom').value.trim();
+  const tel = document.getElementById('cTel').value.trim();
+  const email = document.getElementById('cEmail').value.trim();
+  const err = document.getElementById('erreurResa');
+  if (!nom || !tel) { err.textContent = 'Le nom et le téléphone sont obligatoires.'; return; }
+  try {
+    const r = await api('/api/reservations', 'POST', { slug, serviceId: resa.service.id, date: resa.date, heure: resa.heure, clientNom: nom, clientTel: tel, clientEmail: email });
+    document.getElementById('zonePas').innerHTML = `
+      <div class="centre" style="padding:14px 0">
+        <div style="width:56px;height:56px;border-radius:50%;background:var(--vert);color:#fff;display:grid;place-items:center;font-size:26px;margin:0 auto 14px">✓</div>
+        <h3>Rendez-vous enregistré !</h3>
+        <p class="petit muet" style="margin-top:8px">Votre rendez-vous chez <strong>${ech(r.entreprise)}</strong> pour <strong>${ech(r.service)}</strong> le <strong>${dateFR(r.date)}</strong> à <strong>${r.heure}</strong> a été enregistré.</p>
+        <p class="petit muet" style="margin-top:8px">Référence : <strong>${r.reference}</strong></p>
+        <div style="background:#D1FADF;border-radius:10px;padding:14px;margin-top:16px">
+          <strong>✅ Paiement requis</strong>
+          <p class="petit muet" style="margin-top:6px">Procédez au paiement pour valider définitivement votre réservation.</p>
+          <p style="font-weight:600;font-size:18px;margin-top:8px;color:#16A34A">Montant : ${htg(resa.service.prix)}</p>
+          <button class="btn btn-primaire" style="width:100%;margin-top:12px;background:var(--marque)" onclick="initierPaiementRdv('${r.reference}')">💳 Payer maintenant</button>
+        </div>
+        ${r.whatsapp ? `<a class="btn btn-succes mt" style="margin-top:14px" target="_blank" rel="noopener" href="https://wa.me/${r.whatsapp}?text=${encodeURIComponent("Bonjour, j'ai réservé « " + r.service + " » le " + r.date + " à " + r.heure + " (réf. " + r.reference + ").")}">Contacter sur WhatsApp</a>` : ''}
+      </div>`;
+    document.querySelectorAll('#barrePas .pas').forEach(el => el.classList.add('fait'));
+    window.rdvReference = r.reference;  // Stocker pour le paiement
+  } catch (e) { err.textContent = e.message; }
+}
+
+async function initierPaiementRdv(reference) {
+  try {
+    const result = await api('/api/paiements/ouvrir', 'POST', {
+      commandeType: 'rdv', commandeId: reference, slug
+    });
+    if (result.ok && (result.urlInterne || result.urlPaiement)) {
+      toast('Ouverture du paiement…');
+      setTimeout(() => { window.location.href = result.urlInterne || result.urlPaiement; }, 400);
+    } else toast(result.erreur || 'Erreur paiement');
+  } catch (err) { toast(err.message); }
+}
+
+async function envoyerAvis() {
+  const nom = document.getElementById('avisNom').value.trim();
+  if (!nom) return toast('Indiquez votre nom.');
+  await api('/api/avis', 'POST', { slug, clientNom: nom, note: document.getElementById('avisNote').value, commentaire: document.getElementById('avisTexte').value });
+  document.getElementById('voileAvis').classList.remove('ouvert');
+  toast('Merci pour votre avis !');
+  charger();
+}
+
+charger();
+</script>
+<button id="bulPanier" class="bulle-panier" style="display:none" onclick="ouvrirPanier()">
+  🛒 <span id="nbPanier">0</span> · <span id="totalPanier">0 HTG</span>
+</button>
+
+<!-- Fiche d'un produit : tout ce qu'il faut pour décider d'acheter -->
+<div class="voile" id="voileProduit"><div class="modale fiche" id="ficheProduit" style="max-width:900px"></div></div>
+
+<div class="voile" id="voilePanier"><div class="modale" style="max-width:540px">
+  <h3 data-i18n="panier.titre">Votre commande</h3>
+  <div id="lignesPanier" class="mt"></div>
+  <div id="etapeRemise" style="display:none">
+    <hr style="border:none;border-top:1px solid var(--bordure);margin:16px 0 4px">
+    <label data-i18n="panier.mode">Comment souhaitez-vous recevoir votre commande ?</label>
+    <div id="choixMode" class="choix-formule mt"></div>
+    <div id="blocSurPlace" style="display:none">
+      <label class="opt-formule" style="margin-top:10px">
+        <input type="checkbox" id="pnSurPlace" onchange="majSurPlace()">
+        <span><strong>🏨 <span data-i18n="panier.chambre.titre">Je suis client de l'hôtel</span></strong><br>
+        <span class="petit muet" data-i18n="panier.chambre.aide">Livraison directement dans votre chambre, sans frais.</span></span>
+      </label>
+      <div id="blocNumChambre" style="display:none">
+        <label data-i18n="panier.chambre.num">Numéro de chambre *</label>
+        <input id="pnNumChambre" placeholder="Ex : 204">
+      </div>
+    </div>
+    <div id="blocLivraisonClient" style="display:none">
+      <label data-i18n="panier.zone">Zone de livraison</label>
+      <select id="pnZone" onchange="majTotalPanier()"></select>
+      <label data-i18n="panier.adresse">Adresse de livraison *</label><input id="pnAdresse">
+      <label data-i18n="panier.repere">Point de repère</label><input id="pnRepere" placeholder="Ex : en face de l'école">
+    </div>
+    <div id="blocCueilletteClient" style="display:none">
+      <p class="petit muet" id="infoCueillette"></p>
+    </div>
+    <hr style="border:none;border-top:1px solid var(--bordure);margin:16px 0 4px">
+    <div class="grille" style="grid-template-columns:1fr 1fr;gap:10px">
+      <div><label data-i18n="panier.nom">Votre nom *</label><input id="pnNom"></div>
+      <div><label data-i18n="panier.tel">Téléphone (WhatsApp) *</label><input id="pnTel"></div>
+    </div>
+    <label data-i18n="panier.courriel">Adresse email</label>
+    <input id="pnCourriel" type="email" inputmode="email" placeholder="vous@exemple.com" autocomplete="email">
+    <p class="aide" data-i18n="panier.courrielAide">Pour recevoir la confirmation et suivre votre commande. Facultatif — la boutique vous joindra par téléphone si vous la laissez vide.</p>
+    <label data-i18n="panier.message">Message — facultatif</label><input id="pnMessage">
+    <div id="blocPaiement" style="display:none">
+      <label data-i18n="panier.paiement">Paiement</label>
+      <div id="choixPaiement" class="choix-formule"></div>
+    </div>
+    <!-- Coordonnées du commerçant, quand le client choisit de le payer directement -->
+    <div id="blocVirement" style="display:none"></div>
+    <div class="recap mt" id="recapPanier"></div>
+    <p class="petit muet" id="consigneVente"></p>
+    <p class="champ-erreur" id="erreurPanier"></p>
+    <button class="btn btn-primaire mt" style="width:100%;background:var(--marque)" onclick="validerCommande()" data-i18n="panier.valider">Valider la commande</button>
+  </div>
+  <div class="flex mt" style="justify-content:space-between">
+    <button class="btn btn-fantome" onclick="fermer('voilePanier')" data-i18n="panier.continuer">Continuer mes achats</button>
+    <button class="btn btn-fantome" onclick="viderPanier()" data-i18n="panier.vider">Vider</button>
+  </div>
+</div></div>
+
+<div id="barreInstall" class="barre-install" style="display:none">
+  <span class="bi-ico"><img src="/logo-marque.png" alt="" style="width:26px;height:26px"></span>
+  <div class="bi-txt">
+    <strong data-i18n="inst.titre">Installez Konekte</strong>
+    <span data-i18n="inst.sous">Accès direct depuis votre écran d'accueil, sans passer par le navigateur.</span>
+  </div>
+  <button class="btn btn-primaire btn-petit" onclick="installerApp()" data-i18n="inst.bouton">Installer</button>
+  <button class="bi-fermer" onclick="fermerInstall()" aria-label="Fermer">✕</button>
+</div>
+
+</body>
+</html>

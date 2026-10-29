@@ -1,0 +1,271 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Catégories — Konekte</title>
+<link rel="icon" href="/favicon.ico" sizes="any">
+<link rel="icon" type="image/png" sizes="192x192" href="/icone-192.png">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<meta name="theme-color" content="#0B2C6B">
+<meta name="description" content="Parcourez toutes les catégories de Konekte : santé, beauté, formation, auto, maison, hôtels et restaurants, commerces et urgences.">
+<link rel="stylesheet" href="/style.css">
+<style>
+.entete-cat { background: #fff; border: 1px solid var(--bordure); border-radius: 22px;
+  padding: 32px 30px; box-shadow: var(--ombre); position: relative; overflow: hidden; margin: 24px 0 26px; }
+.entete-cat::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 5px; background: var(--degrade-accent); }
+.entete-cat h1 { font-size: clamp(24px, 3vw, 34px); letter-spacing: -.025em; }
+.entete-cat .accent { color: var(--orange); }
+
+.grille-familles { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 16px; }
+.carte-famille { background: #fff; border: 1px solid var(--bordure); border-radius: var(--r-carte);
+  padding: 22px 22px 20px; transition: box-shadow .16s, transform .16s; display: flex; flex-direction: column; }
+.carte-famille:hover { box-shadow: var(--ombre-f); transform: translateY(-3px); }
+.rond-fam { width: 56px; height: 56px; border-radius: 16px; display: grid; place-items: center;
+  font-size: 27px; background: var(--bleu-clair); margin-bottom: 13px; }
+.carte-famille h2 { font-size: 17px; color: var(--marine); }
+.carte-famille .desc { font-size: 13.5px; color: var(--gris); margin-top: 5px; }
+.metiers-fam { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 13px; }
+.puce-metier { background: var(--gris-clair); border-radius: 99px; padding: 4px 11px;
+  font-size: 12px; font-weight: 600; color: var(--texte); border: 0; cursor: pointer; font-family: inherit; }
+.puce-metier:hover { background: var(--bleu-clair); color: var(--marine); }
+.pied-fam { margin-top: auto; padding-top: 14px; }
+
+.carte-famille.urgence .rond-fam { background: #FDEBEB; }
+.carte-famille.urgence { border-color: #F5C6C6; }
+
+.bande-aide { background: var(--marine); color: #fff; border-radius: var(--r-carte);
+  padding: 26px 28px; margin-top: 30px; display: flex; justify-content: space-between;
+  align-items: center; gap: 18px; flex-wrap: wrap; }
+.bande-aide h2 { font-size: 19px; }
+.bande-aide p { opacity: .82; font-size: 14px; margin-top: 5px; }
+.barre-install { position: fixed; left: 12px; right: 12px; bottom: 12px; z-index: 80;
+  background: #fff; border: 1px solid var(--bordure); border-radius: 16px; padding: 12px 14px;
+  box-shadow: 0 12px 34px rgba(11,44,107,.20); display: flex; align-items: center; gap: 12px;
+  max-width: 520px; margin: 0 auto; }
+.barre-install .bi-ico { width: 42px; height: 42px; border-radius: 12px; background: var(--bleu-clair);
+  display: grid; place-items: center; flex: none; }
+.bi-txt { flex: 1; min-width: 0; }
+.bi-txt strong { display: block; font-size: 14px; color: var(--marine); }
+.bi-txt span { font-size: 12.3px; color: var(--gris); line-height: 1.35; display: block; }
+.bi-fermer { border: 0; background: none; color: var(--gris); font-size: 16px; cursor: pointer;
+  padding: 4px; line-height: 1; flex: none; }
+.bi-fermer:hover { color: var(--marine); }
+@media (max-width: 480px) { .bi-txt span { display: none; } }
+</style>
+<script src="/app.js"></script>
+<script src="/translations.js"></script>
+</head>
+<body>
+
+<nav class="nav">
+  <div class="conteneur nav-int">
+    <button class="burger" aria-label="Menu" aria-expanded="false" onclick="basculerMenu(this)">☰</button>
+    <a class="logo" href="/"><img src="/logo-marque.png" alt="" style="height:34px;width:auto">Konekte</a>
+    <div class="nav-liens">
+      <a href="/" data-i18n="acc.nav.accueil">Accueil</a>
+      <a href="/boutique.html" data-i18n="bq.nav">Boutique</a>
+      <a href="/mes-achats.html" data-i18n="nav.achats">Mes achats</a>
+      <a href="/categories.html" class="actif" data-i18n="acc.nav.categories">Catégories</a>
+      <a href="/apropos.html" data-i18n="acc.nav.apropos">À propos</a>
+      <a href="/forfaits.html" data-i18n="nav.forfaits">Forfaits</a>
+      <a href="/contact.html" data-i18n="nav.contact">Contact</a>
+      <a class="btn btn-contour lien-mobile" href="/connexion.html" data-i18n="acc.nav.connexion">Se connecter</a>
+      <a class="btn btn-primaire lien-mobile" href="/inscription.html" data-i18n="acc.nav.inscrire">Inscrire mon entreprise</a>
+    </div>
+    <div class="nav-droite">
+      <button class="btn btn-fantome" id="btnLangue" style="font-size:14px" onclick="basculerLangue()">🌐 FR/HT</button>
+      <a class="btn btn-contour" href="/connexion.html" data-i18n="acc.nav.connexion">Se connecter</a>
+      <a class="btn btn-primaire" href="/inscription.html" data-i18n="acc.nav.inscrire">Inscrire mon entreprise</a>
+    </div>
+  </div>
+</nav>
+
+<main class="conteneur">
+  <section class="entete-cat">
+    <span class="eyebrow" data-i18n="acc.eyebrow">Plateforme haïtienne</span>
+    <h1><span data-i18n="cats.titre1">Trouvez le service qu'il vous faut, </span><span class="accent" data-i18n="cats.titre2">près de chez vous</span></h1>
+    <p class="muet" style="margin-top:9px;max-width:60ch" data-i18n="cats.intro">Parcourez les catégories, ou cherchez directement une entreprise par son nom, son activité ou sa ville.</p>
+    <form class="barre-recherche" id="formRecherche" style="margin-top:20px;max-width:640px">
+      <input type="text" id="champQ" placeholder="Que cherchez-vous ?" data-i18n-placeholder="acc.rech.q" aria-label="Recherche">
+      <div class="sep"></div>
+      <input type="text" id="champLieu" placeholder="Localisation" data-i18n-placeholder="acc.rech.lieu" aria-label="Localisation">
+      <button class="btn btn-primaire" type="submit" data-i18n="acc.rech.bouton">Rechercher</button>
+    </form>
+    <p class="petit muet" id="resumeCat" style="margin-top:14px"></p>
+  </section>
+
+  <div class="grille-familles" id="grilleFamilles"></div>
+
+  <section id="resultats" style="margin-top:34px;display:none">
+    <div class="flex entre">
+      <div>
+        <h2 id="titreResultats">Résultats</h2>
+        <p class="muet petit" id="sousTitreResultats"></p>
+      </div>
+      <button class="btn btn-fantome btn-petit" onclick="toutAfficher()" data-i18n="cats.retour">← Toutes les catégories</button>
+    </div>
+    <div class="grille mt" id="listeEntreprises"></div>
+  </section>
+
+  <div class="bande-aide">
+    <div>
+      <h2 data-i18n="cats.aide.titre">Vous ne trouvez pas votre activité ?</h2>
+      <p data-i18n="cats.aide.texte">Konekte couvre plus de trente métiers. Inscrivez votre entreprise, votre espace s'adaptera automatiquement à votre activité.</p>
+    </div>
+    <a class="btn btn-primaire" href="/inscription.html" data-i18n="acc.nav.inscrire">Inscrire mon entreprise</a>
+  </div>
+</main>
+
+<footer class="pied-riche" style="margin-top:56px">
+  <div class="conteneur">
+    <div class="pied-bas">
+      <p class="petit">© 2026 <strong>KONEKTE</strong> — <span data-i18n="pied.droits">Tous droits réservés.</span></p>
+      <p class="petit"><a href="/mes-achats.html">Mes achats</a> · <a href="/recu.html">Mon reçu</a> · <a href="/confidentialite.html">Confidentialité</a></p>
+      <p class="petit" data-i18n="pied.concu">Conçu en Haïti 💙 pour les entreprises haïtiennes.</p>
+    </div>
+  </div>
+</footer>
+
+<div id="barreInstall" class="barre-install" style="display:none">
+  <span class="bi-ico"><img src="/logo-marque.png" alt="" style="width:26px;height:26px"></span>
+  <div class="bi-txt">
+    <strong data-i18n="inst.titre">Installez Konekte</strong>
+    <span data-i18n="inst.sous">Accès direct depuis votre écran d'accueil, sans passer par le navigateur.</span>
+  </div>
+  <button class="btn btn-primaire btn-petit" onclick="installerApp()" data-i18n="inst.bouton">Installer</button>
+  <button class="bi-fermer" onclick="fermerInstall()" aria-label="Fermer">✕</button>
+</div>
+
+<div id="toast"></div>
+<script>
+const ICONES_FAM = {
+  'Santé':'🩺', 'Beauté':'💇', 'Formation':'🎓', 'Auto':'🚗', 'Maison':'🏠',
+  'Hôtellerie':'🏨', 'Hôtels & Restaurants':'🏨', 'Commerce':'🛍️', 'Juridique':'⚖️', 'Autre':'✨'
+};
+const DESC_FAM = {
+  'Santé': { fr:'Cliniques, cabinets, laboratoires et pharmacies, avec les services d\'urgence.', ht:'Klinik, kabinè, laboratwa ak famasi, ak sèvis ijans.' },
+  'Beauté': { fr:'Salons de coiffure, instituts de beauté, spas et barbiers.', ht:'Salon kwafi, enstiti bote, espa ak babye.' },
+  'Formation': { fr:'Écoles, universités, centres professionnels et cours particuliers.', ht:'Lekòl, inivèsite, sant pwofesyonèl ak kou patikilye.' },
+  'Auto': { fr:'Garages, lavage, pièces détachées et transport.', ht:'Garaj, lavaj, pyès ak transpò.' },
+  'Maison': { fr:'Artisans, électriciens, plomberie, nettoyage et entretien.', ht:'Atizan, elektrisyen, plonbri, netwayaj ak antretyen.' },
+  'Hôtellerie': { fr:'Hôtels, auberges, restaurants et bars, avec réservation en ligne.', ht:'Otèl, ojèj, restoran ak ba, ak rezèvasyon an liy.' },
+  'Commerce': { fr:'Boutiques, magasins et supermarchés, avec achat et livraison.', ht:'Boutik, magazen ak makèt, ak acha epi livrezon.' },
+  'Juridique': { fr:'Notaires, avocats, arpenteurs et comptables, avec suivi de dossier.', ht:'Notè, avoka, apantè ak kontab, ak swivi dosye.' },
+  'Autre': { fr:'Toutes les autres activités de la plateforme.', ht:'Tout lòt aktivite yo sou platfòm nan.' }
+};
+let REF = null, TOUTES = [];
+
+function lg(){ return localStorage.getItem('langue') || 'fr'; }
+
+async function init(){
+  try { REF = await api('/api/metiers'); } catch { REF = null; }
+  try { TOUTES = await api('/api/entreprises'); } catch { TOUTES = []; }
+  document.getElementById('resumeCat').textContent = lg()==='ht'
+    ? `${TOUTES.length} biznis nan ${(REF ? REF.FAMILLES.length : 0)} kategori`
+    : `${TOUTES.length} entreprise${TOUTES.length>1?'s':''} réparties en ${(REF ? REF.FAMILLES.length : 0)} catégories`;
+  dessinerFamilles();
+  // Une catégorie peut être demandée dans l'adresse : /categories.html?c=Santé
+  const p = new URLSearchParams(location.search);
+  if (p.get('c')) filtrerFamille(p.get('c'));
+  if (p.get('urgence')) filtrerUrgences();
+}
+
+function metiersDe(fam){
+  if (!REF) return [];
+  return Object.entries(REF.METIERS).filter(([,m]) => m.famille === fam);
+}
+function compteDe(fam){ return TOUTES.filter(e => e.categorie === fam).length; }
+
+function dessinerFamilles(){
+  const fams = REF ? REF.FAMILLES : Object.keys(ICONES_FAM);
+  const l = lg();
+  let html = fams.map(f => {
+    const mets = metiersDe(f);
+    const n = compteDe(f);
+    const d = DESC_FAM[f] ? DESC_FAM[f][l] : '';
+    return `<article class="carte-famille">
+      <div class="rond-fam">${ICONES_FAM[f] || '✨'}</div>
+      <h2>${ech(f)}</h2>
+      <p class="desc">${ech(d)}</p>
+      ${mets.length ? `<div class="metiers-fam">${mets.slice(0,7).map(([cle,m]) =>
+        `<button class="puce-metier" onclick="filtrerMetier('${cle}','${ech(m.nom[l]||m.nom.fr).replace(/'/g,"\\\\'")}')">${m.ico} ${ech(m.nom[l]||m.nom.fr)}</button>`).join('')}
+        ${mets.length>7?`<span class="puce-metier" style="opacity:.7">+${mets.length-7}</span>`:''}</div>` : ''}
+      <div class="pied-fam">
+        <button class="btn btn-contour btn-petit" style="width:100%" onclick="filtrerFamille('${ech(f).replace(/'/g,"\\\\'")}')">
+          ${n ? `${n} ${l==='ht'?'biznis':'entreprise'+(n>1?'s':'')}` : (l==='ht'?'Gade':'Voir')} →</button>
+      </div>
+    </article>`;
+  }).join('');
+  // Les urgences forment une entrée à part : elles ne se parcourent pas, elles s'appellent
+  html += `<article class="carte-famille urgence">
+    <div class="rond-fam">🚨</div>
+    <h2>${l==='ht'?'Ijans':'Urgences'}</h2>
+    <p class="desc">${l==='ht'?'Klinik, lopital ak famasi ki louvri kounye a, ak nimewo pou rele dirèk.'
+      :'Cliniques, hôpitaux et pharmacies ouverts, avec le numéro à appeler directement.'}</p>
+    <div class="pied-fam">
+      <button class="btn btn-danger btn-petit" style="width:100%" onclick="filtrerUrgences()">
+        ${l==='ht'?'Wè sèvis ijans yo':"Voir les services d'urgence"} →</button>
+    </div>
+  </article>`;
+  document.getElementById('grilleFamilles').innerHTML = html;
+}
+
+function afficherResultats(liste, titre, sous){
+  document.getElementById('resultats').style.display = '';
+  document.getElementById('grilleFamilles').style.display = 'none';
+  document.getElementById('titreResultats').textContent = titre;
+  document.getElementById('sousTitreResultats').textContent = sous || '';
+  const l = lg();
+  document.getElementById('listeEntreprises').innerHTML = liste.length ? liste.map(e => `
+    <a class="carte-ent" href="/${ech(e.slug)}">
+      <div class="ent-tete" style="background:linear-gradient(135deg,${ech(e.couleur||'#2563EB')},${ech(e.couleur2||'#F59E0B')})">
+        <span class="ent-logo">${ech(e.logoTexte || e.nom.slice(0,2).toUpperCase())}</span>
+      </div>
+      <div class="ent-corps">
+        <strong>${ech(e.nom)}</strong>
+        <p class="petit muet">${ech(e.categorie)} · ${ech(e.adresse||'')}</p>
+        <p class="petit"><span class="etoiles">${etoiles(e.note)}</span> ${e.note||'—'}
+          <span class="muet">(${e.totalAvis||0})</span></p>
+        ${e.urgence ? `<span class="badge badge-urgence">🚨 ${e.urgence.permanence ? (l==='ht'?'Ijans 24è':'Urgences 24h/24') : (l==='ht'?'Ijans':'Urgences')}</span>` : ''}
+        <span class="btn btn-primaire btn-petit" style="margin-top:8px;width:100%">
+          ${ech((e.action && e.action[l==='ht'?'ht':'fr']) || 'Réserver')}</span>
+      </div>
+    </a>`).join('')
+    : `<p class="muet">${l==='ht'?'Anyen pa jwenn nan kategori sa a.':'Aucune entreprise dans cette catégorie pour le moment.'}</p>`;
+  window.scrollTo({ top: document.getElementById('resultats').offsetTop - 80, behavior: 'smooth' });
+}
+function filtrerFamille(fam){
+  afficherResultats(TOUTES.filter(e => e.categorie === fam), fam,
+    DESC_FAM[fam] ? DESC_FAM[fam][lg()] : '');
+}
+function filtrerMetier(cle, nom){
+  afficherResultats(TOUTES.filter(e => e.metier === cle), nom, '');
+}
+async function filtrerUrgences(){
+  try {
+    const l = await api('/api/entreprises?urgence=1');
+    afficherResultats(l, lg()==='ht'?'Sèvis ijans':"Services d'urgence",
+      lg()==='ht'?'Rele dirèk oswa ale sou plas.':'Appelez directement ou rendez-vous sur place.');
+  } catch { toast('Chargement impossible.'); }
+}
+function toutAfficher(){
+  document.getElementById('resultats').style.display = 'none';
+  document.getElementById('grilleFamilles').style.display = '';
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+document.getElementById('formRecherche').addEventListener('submit', async (ev) => {
+  ev.preventDefault();
+  const q = document.getElementById('champQ').value.trim().toLowerCase();
+  const lieu = document.getElementById('champLieu').value.trim().toLowerCase();
+  let liste = TOUTES;
+  if (q) liste = liste.filter(e => `${e.nom} ${e.categorie} ${e.metier}`.toLowerCase().includes(q));
+  if (lieu) liste = liste.filter(e => String(e.adresse||'').toLowerCase().includes(lieu));
+  afficherResultats(liste, lg()==='ht'?`Rezilta (${liste.length})`:`Résultats (${liste.length})`, '');
+});
+
+init();
+</script>
+</body>
+</html>

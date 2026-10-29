@@ -1,0 +1,226 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mes achats — Konekte</title>
+<link rel="icon" href="/favicon.ico" sizes="any">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<meta name="theme-color" content="#0B2C6B">
+<link rel="stylesheet" href="/style.css">
+<style>
+body { background: var(--fond); min-height: 100vh; padding: 20px 14px 40px; }
+.boite { width: 100%; max-width: 560px; margin: 0 auto; }
+.champ-code { text-align: center; font-size: 26px; letter-spacing: .35em; font-weight: 800; }
+
+.achat { background: #fff; border: 1px solid var(--bordure); border-radius: 15px;
+  padding: 15px 17px; margin-bottom: 12px; }
+.achat-tete { display: flex; justify-content: space-between; gap: 12px; align-items: flex-start; }
+.achat-tete strong { font-size: 15px; color: var(--marine); }
+.achat .meta { font-size: 12.5px; color: var(--gris); margin-top: 2px; }
+.achat .montant { font-weight: 800; color: var(--marine); white-space: nowrap; font-size: 15px; }
+.genre { display: inline-block; font-size: 11px; font-weight: 800; padding: 2px 9px;
+  border-radius: 99px; background: var(--bleu-clair); color: var(--marine); margin-bottom: 5px; }
+
+/* Suivi : chaque étape franchie s'allume */
+.suivi { display: flex; gap: 4px; margin-top: 12px; }
+.suivi .pas { flex: 1; text-align: center; }
+.suivi .barre { height: 4px; border-radius: 99px; background: var(--bordure); margin-bottom: 5px; }
+.suivi .pas.faite .barre { background: var(--vert); }
+.suivi .pas.active .barre { background: var(--degrade); }
+.suivi .pas span { font-size: 10.5px; color: var(--gris); font-weight: 700; }
+.suivi .pas.active span { color: var(--marine); }
+.suivi .pas.annule .barre { background: var(--rouge); }
+
+.articles { margin-top: 8px; padding-left: 16px; }
+.articles li { font-size: 12.5px; color: var(--texte); }
+.filtres { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 14px; }
+.filtre { border: 1.5px solid var(--bordure); background: #fff; border-radius: var(--r-pilule);
+  padding: 7px 14px; font: inherit; font-size: 13px; font-weight: 700; color: var(--texte); cursor: pointer; }
+.filtre.on { background: var(--degrade); border-color: transparent; color: #fff; }
+</style>
+<script src="/app.js"></script>
+</head>
+<body>
+<div class="boite">
+  <div class="centre mb"><a class="logo" style="justify-content:center" href="/"><img src="/logo.png" alt="Konekte" style="height:64px;width:auto"></a></div>
+  <div id="zone"><p class="centre muet">Chargement…</p></div>
+  <p class="petit centre mt"><a href="/">← Retour à l'accueil</a></p>
+</div>
+
+<div id="toast"></div>
+<script>
+let ACHATS = [], filtre = 'tous', defi = null;
+
+const GENRES = { rendezvous:'Rendez-vous', commande:'Commande', sejour:'Séjour', dossier:'Dossier' };
+
+/* Étapes de suivi selon la nature de l'achat. Le client veut savoir
+   où en est sa commande, pas lire un code technique. */
+const PARCOURS = {
+  commande: [
+    { cle:'en_attente', nom:'Reçue' }, { cle:'confirmee', nom:'Confirmée' },
+    { cle:'preparation', nom:'Préparation' }, { cle:'en_route', nom:'En route' },
+    { cle:'livree', nom:'Livrée' }
+  ],
+  rendezvous: [
+    { cle:'en_attente', nom:'Demandé' }, { cle:'confirme', nom:'Confirmé' },
+    { cle:'termine', nom:'Terminé' }
+  ],
+  sejour: [
+    { cle:'en_attente', nom:'Demandé' }, { cle:'confirme', nom:'Confirmé' },
+    { cle:'termine', nom:'Terminé' }
+  ]
+};
+
+function connexion(message){
+  /* Le bouton « Suivre ma commande » des courriels mène ici en portant
+     l'adresse du client : il la retrouve déjà saisie, et n'a plus qu'à
+     demander son code. Sans ce report, le lien obligeait à retaper ce
+     qu'on venait d'écrire au moment de commander. */
+  const q = new URLSearchParams(location.search);
+  const mailPre = (q.get('email') || '').slice(0, 120);
+  const telPre = (q.get('tel') || '').replace(/[^0-9+ ]/g, '').slice(0, 20);
+
+  document.getElementById('zone').innerHTML = `
+    <div class="carte"><div class="carte-corps" style="padding:26px">
+      <h1 style="font-size:20px">Mes achats et réservations</h1>
+      <p class="petit muet" style="margin-top:6px">Saisissez l'adresse email ou le numéro que vous avez utilisé lors de vos commandes. Un code vous sera envoyé par email.</p>
+      <label>Votre adresse email</label>
+      <input id="mail" type="email" inputmode="email" autocomplete="email" placeholder="vous@exemple.com" value="${ech(mailPre)}">
+      <p class="aide">ou, si vous avez commandé par téléphone :</p>
+      <label>Votre numéro de téléphone</label>
+      <input id="tel" inputmode="tel" placeholder="Ex : 509 3712 0000" value="${ech(telPre)}">
+      <p class="champ-erreur" id="err">${message || ''}</p>
+      <button class="btn btn-primaire" style="width:100%" id="btn" onclick="demander()">Recevoir mon code</button>
+      <p class="aide mt">Aucun compte à créer. Le code part à l'adresse que vous avez laissée lors de vos achats.</p>
+    </div></div>`;
+  // Le champ rempli reçoit le curseur, l'autre garde la main si les deux sont vides
+  const cible = document.getElementById(mailPre ? 'btn' : (telPre ? 'btn' : 'mail'));
+  if (cible) cible.focus();
+}
+
+async function demander(){
+  const tel = document.getElementById('tel').value.trim();
+  const mail = document.getElementById('mail').value.trim();
+  const err = document.getElementById('err');
+  if (!tel && !mail) { err.textContent = 'Saisissez votre adresse email ou votre numéro.'; return; }
+  document.getElementById('btn').disabled = true;
+  try {
+    const r = await api('/api/client/code','POST',{ telephone: tel, courriel: mail });
+    defi = r.defi;
+    saisieCode(r.destination);
+  } catch(e){ err.textContent = e.message; document.getElementById('btn').disabled = false; }
+}
+
+function saisieCode(masque){
+  document.getElementById('zone').innerHTML = `
+    <div class="carte"><div class="carte-corps" style="padding:26px">
+      <div class="centre">
+        <div style="font-size:34px">📩</div>
+        <h1 style="font-size:19px;margin-top:6px">Saisissez le code</h1>
+        <p class="petit muet" style="margin-top:6px">Envoyé par email ${masque ? 'à ' + masque : ''}. Pensez à regarder vos indésirables.</p>
+      </div>
+      <label>Code à 6 chiffres</label>
+      <input id="code" class="champ-code" inputmode="numeric" maxlength="6" autocomplete="one-time-code" placeholder="000000">
+      <p class="champ-erreur" id="errC"></p>
+      <button class="btn btn-primaire" style="width:100%" onclick="verifier()">Voir mes achats</button>
+      <p class="petit centre mt"><a href="#" onclick="connexion('');return false">← Recommencer</a></p>
+    </div></div>`;
+  const champ = document.getElementById('code');
+  champ.focus();
+  champ.addEventListener('input', () => {
+    champ.value = champ.value.replace(/\D/g, '');
+    if (champ.value.length === 6) verifier();
+  });
+}
+
+async function verifier(){
+  const code = document.getElementById('code').value.trim();
+  const err = document.getElementById('errC');
+  if (code.length !== 6) { err.textContent = 'Saisissez les 6 chiffres.'; return; }
+  try {
+    await api('/api/client/verifier','POST',{ defi, code });
+    charger();
+  } catch(e){ err.textContent = e.message; document.getElementById('code').value = ''; }
+}
+
+function etapesDe(a){
+  const parcours = PARCOURS[a.genre];
+  if (!parcours) return '';
+  if (a.statut === 'annulee' || a.statut === 'annule' || a.statut === 'refuse') {
+    return `<div class="suivi"><div class="pas annule" style="flex:1">
+      <div class="barre"></div><span>Annulé</span></div></div>`;
+  }
+  let index = parcours.findIndex(p => p.cle === a.statut);
+  if (index < 0) index = 0;
+  return `<div class="suivi">${parcours.map((p,i) => `
+    <div class="pas ${i < index ? 'faite' : (i === index ? 'active' : '')}">
+      <div class="barre"></div><span>${p.nom}</span>
+    </div>`).join('')}</div>`;
+}
+
+function dessiner(){
+  const liste = filtre === 'tous' ? ACHATS : ACHATS.filter(a => a.genre === filtre);
+  const genresPresents = [...new Set(ACHATS.map(a => a.genre))];
+
+  document.getElementById('liste').innerHTML = liste.length ? liste.map(a => `
+    <article class="achat">
+      <span class="genre">${GENRES[a.genre] || a.genre}</span>${a.precommande
+        ? `<span class="genre" style="background:#EFEAFB;color:#4B2E9E;margin-left:5px">⏳ Précommande${
+            a.dateDispo ? ' · ' + ech(dateCourte(a.dateDispo, 'fr')) : ''}</span>` : ''}
+      <div class="achat-tete">
+        <div style="flex:1;min-width:0">
+          <strong>${ech(a.titre)}</strong>
+          <div class="meta">${a.entreprise ? ech(a.entreprise.nom) : ''} ${a.quand ? '· ' + ech(a.quand) : ''}</div>
+          <div class="meta">Référence ${ech(a.reference)}${a.paye ? ' · <span style="color:var(--vert);font-weight:700">Payé</span>' : ''}</div>
+        </div>
+        ${a.montant ? `<div class="montant">${(+a.montant).toLocaleString('fr-HT')} HTG</div>` : ''}
+      </div>
+      ${a.articles && a.articles.length ? `<ul class="articles">${a.articles.map(x => `<li>${ech(x)}</li>`).join('')}</ul>` : ''}
+      ${etapesDe(a)}
+      ${a.genre === 'dossier' && a.etapes && a.etapes.length ? `
+        <p class="petit muet" style="margin-top:8px">Étape : <strong>${ech(a.quand || '—')}</strong></p>` : ''}
+      <div class="flex mt" style="gap:7px;flex-wrap:wrap">
+        ${a.entreprise ? `<a class="btn btn-contour btn-petit" href="/${ech(a.entreprise.slug)}">Voir l'entreprise</a>` : ''}
+        ${a.paye ? `<a class="btn btn-fantome btn-petit" href="/recu.html?ref=${encodeURIComponent(a.reference)}">Mon reçu</a>` : ''}
+        ${a.entreprise && a.entreprise.telephone ? `<a class="btn btn-succes btn-petit" target="_blank" rel="noopener"
+          href="https://wa.me/${String(a.entreprise.telephone).replace(/\D/g,'')}?text=${encodeURIComponent('Bonjour, au sujet de ma référence ' + a.reference)}">💬 Écrire</a>` : ''}
+      </div>
+    </article>`).join('')
+    : '<p class="muet centre">Rien dans cette catégorie.</p>';
+
+  document.getElementById('filtres').innerHTML =
+    [['tous','Tout']].concat(genresPresents.map(g => [g, GENRES[g] || g]))
+      .map(([c,n]) => `<button class="filtre ${filtre===c?'on':''}" onclick="filtre='${c}';dessiner()">${n}</button>`).join('');
+}
+
+async function charger(){
+  let d;
+  try { d = await api('/api/client/mes-achats'); }
+  catch { connexion(''); return; }
+
+  ACHATS = d.achats;
+  document.getElementById('zone').innerHTML = `
+    <div class="carte mb"><div class="carte-corps">
+      <div class="flex entre" style="flex-wrap:wrap;gap:10px">
+        <div>
+          <h1 style="font-size:19px">Mes achats</h1>
+          <p class="petit muet">Numéro ${ech(d.telMasque)} · ${d.total} au total, ${d.enCours} en cours</p>
+        </div>
+        <button class="btn btn-fantome btn-petit" onclick="deconnexion()">Quitter</button>
+      </div>
+    </div></div>
+    <div class="filtres" id="filtres"></div>
+    <div id="liste"></div>`;
+  dessiner();
+}
+
+async function deconnexion(){
+  await api('/api/client/deconnexion','POST',{});
+  connexion('');
+}
+
+charger();
+</script>
+</body>
+</html>
