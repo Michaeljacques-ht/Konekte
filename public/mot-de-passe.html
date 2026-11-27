@@ -1,0 +1,159 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mot de passe oublié — Konekte</title>
+<meta name="robots" content="noindex">
+<link rel="icon" href="/favicon.ico" sizes="any">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<meta name="theme-color" content="#0B2C6B">
+<link rel="stylesheet" href="/style.css">
+<style>
+body { background: var(--fond); min-height: 100vh; display: grid; place-items: center; padding: 20px; }
+.boite { width: 100%; max-width: 420px; }
+.fil { display: flex; gap: 6px; margin-bottom: 18px; }
+.fil-pas { flex: 1; height: 5px; border-radius: 99px; background: var(--bordure); }
+.fil-pas.faite { background: var(--vert); }
+.fil-pas.active { background: var(--degrade); }
+.etape { display: none; }
+.etape.on { display: block; }
+.champ-code { text-align: center; font-size: 26px; letter-spacing: .35em; font-weight: 800; }
+</style>
+<script src="/app.js"></script>
+</head>
+<body>
+<div class="boite">
+  <div class="centre mb"><a class="logo" style="justify-content:center" href="/"><img src="/logo.png" alt="Konekte" style="height:70px;width:auto"></a></div>
+
+  <div class="fil" id="fil">
+    <div class="fil-pas active"></div><div class="fil-pas"></div><div class="fil-pas"></div>
+  </div>
+
+  <div class="carte"><div class="carte-corps" style="padding:26px">
+
+    <!-- 1. Identification -->
+    <section class="etape on" data-pas="1">
+      <h1 style="font-size:20px">Mot de passe oublié</h1>
+      <p class="petit muet" style="margin-top:6px">Saisissez l'adresse email de votre compte. Nous enverrons un code au numéro WhatsApp ou à l'adresse enregistrée sur ce compte.</p>
+      <label>Email du compte</label>
+      <input id="email" type="email" placeholder="vous@entreprise.ht" autocomplete="username">
+      <p class="champ-erreur" id="err1"></p>
+      <button class="btn btn-primaire" style="width:100%" id="btn1" onclick="demander()">Envoyer le code</button>
+      <p class="petit centre mt"><a href="/connexion.html">← Retour à la connexion</a></p>
+    </section>
+
+    <!-- 2. Code -->
+    <section class="etape" data-pas="2">
+      <div class="centre">
+        <div style="font-size:34px">📩</div>
+        <h1 style="font-size:19px;margin-top:6px">Saisissez le code</h1>
+        <p class="petit muet" style="margin-top:6px" id="ouEnvoye"></p>
+      </div>
+      <label>Code à 6 chiffres</label>
+      <input id="code" class="champ-code" inputmode="numeric" maxlength="6" autocomplete="one-time-code" placeholder="000000">
+      <p class="champ-erreur" id="err2"></p>
+      <button class="btn btn-primaire" style="width:100%" onclick="allerPas(3)">Continuer</button>
+      <p class="petit centre mt"><a href="#" onclick="allerPas(1);return false">← Changer d'adresse</a></p>
+    </section>
+
+    <!-- 3. Nouveau mot de passe -->
+    <section class="etape" data-pas="3">
+      <h1 style="font-size:20px">Nouveau mot de passe</h1>
+      <p class="petit muet" style="margin-top:6px">Choisissez un mot de passe d'au moins 6 caractères.</p>
+      <label>Nouveau mot de passe</label>
+      <input id="mdp" type="password" autocomplete="new-password" oninput="verifierMdp()">
+      <label>Confirmer</label>
+      <input id="mdp2" type="password" autocomplete="new-password" oninput="verifierMdp()">
+      <p class="aide" id="etatMdp"></p>
+      <p class="champ-erreur" id="err3"></p>
+      <button class="btn btn-primaire" style="width:100%" id="btn3" onclick="reinitialiser()">Changer mon mot de passe</button>
+    </section>
+  </div></div>
+
+  <p class="petit centre mt muet">Un problème ? Écrivez-nous sur <a target="_blank" rel="noopener" href="https://wa.me/15142261860">WhatsApp</a>.</p>
+</div>
+
+<div id="toast"></div>
+<script>
+let demande = null, pas = 1;
+
+function allerPas(n){
+  // On ne peut pas avancer sans code saisi
+  if (n === 3 && document.getElementById('code').value.trim().length !== 6) {
+    document.getElementById('err2').textContent = 'Saisissez les 6 chiffres du code.'; return;
+  }
+  pas = n;
+  document.querySelectorAll('.etape').forEach(s => s.classList.toggle('on', +s.dataset.pas === pas));
+  document.querySelectorAll('.fil-pas').forEach((b, i) => {
+    b.className = 'fil-pas' + (i + 1 < pas ? ' faite' : (i + 1 === pas ? ' active' : ''));
+  });
+  ['err1','err2','err3'].forEach(id => document.getElementById(id).textContent = '');
+}
+
+async function demander(){
+  const email = document.getElementById('email').value.trim();
+  const err = document.getElementById('err1');
+  if (!email) { err.textContent = "Saisissez l'adresse email de votre compte."; return; }
+  document.getElementById('btn1').disabled = true;
+  try {
+    const r = await api('/api/mdp/demander','POST',{ email });
+    demande = r.demande || null;
+    document.getElementById('ouEnvoye').innerHTML = r.destination
+      ? `Un code a été envoyé ${r.canal === 'courriel' ? 'à' : 'au'} <strong>${ech(r.destination)}</strong>.`
+      : "Si un compte existe avec cette adresse, un code vient d'être envoyé.";
+    allerPas(2);
+    document.getElementById('code').focus();
+  } catch(e){ err.textContent = e.message; }
+  document.getElementById('btn1').disabled = false;
+}
+
+function verifierMdp(){
+  const a = document.getElementById('mdp').value, b = document.getElementById('mdp2').value;
+  const z = document.getElementById('etatMdp');
+  if (!a && !b) { z.textContent = ''; return; }
+  if (a.length < 6) { z.textContent = 'Au moins 6 caractères.'; z.style.color = 'var(--gris)'; return; }
+  if (!b) { z.textContent = 'Confirmez le mot de passe.'; z.style.color = 'var(--gris)'; return; }
+  const ok = a === b;
+  z.textContent = ok ? '✓ Les mots de passe correspondent.' : '✕ Les mots de passe ne correspondent pas.';
+  z.style.color = ok ? 'var(--vert)' : 'var(--rouge)';
+}
+
+async function reinitialiser(){
+  const err = document.getElementById('err3');
+  const mdp = document.getElementById('mdp').value, mdp2 = document.getElementById('mdp2').value;
+  if (mdp.length < 6) { err.textContent = 'Le mot de passe doit contenir au moins 6 caractères.'; return; }
+  if (mdp !== mdp2) { err.textContent = 'Les deux mots de passe ne correspondent pas.'; return; }
+  if (!demande) { err.textContent = 'Demande expirée. Recommencez depuis le début.'; return; }
+
+  document.getElementById('btn3').disabled = true;
+  try {
+    await api('/api/mdp/reinitialiser','POST',{
+      demande, code: document.getElementById('code').value.trim(), motdepasse: mdp, motdepasse2: mdp2
+    });
+    document.querySelector('.carte-corps').innerHTML = `
+      <div class="centre" style="padding:20px 0">
+        <div style="width:58px;height:58px;border-radius:50%;background:var(--vert);color:#fff;
+          display:grid;place-items:center;font-size:27px;margin:0 auto 14px">✓</div>
+        <h1 style="font-size:20px">Mot de passe changé</h1>
+        <p class="petit muet" style="margin-top:8px">Vous pouvez maintenant vous connecter.
+        Toutes les sessions ouvertes ont été fermées.</p>
+        <a class="btn btn-primaire mt" style="width:100%" href="/connexion.html">Se connecter</a>
+      </div>`;
+    document.getElementById('fil').style.display = 'none';
+  } catch(e){
+    err.textContent = e.message;
+    // Code refusé : on renvoie à l'étape du code
+    if (/[Cc]ode/.test(e.message)) allerPas(2);
+    document.getElementById('btn3').disabled = false;
+  }
+}
+
+// Validation automatique dès le sixième chiffre
+document.getElementById('code').addEventListener('input', (ev) => {
+  ev.target.value = ev.target.value.replace(/\D/g, '');
+  if (ev.target.value.length === 6) allerPas(3);
+});
+</script>
+</body>
+</html>

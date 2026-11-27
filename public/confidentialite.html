@@ -1,0 +1,155 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Confidentialité — Konekte</title>
+<link rel="icon" href="/favicon.ico" sizes="any">
+<link rel="icon" type="image/png" sizes="192x192" href="/icone-192.png">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<meta name="theme-color" content="#0B2C6B">
+<meta name="description" content="Contactez l'équipe Konekte : WhatsApp, téléphone, email ou formulaire. Nous répondons sous 24 heures ouvrables.">
+<link rel="stylesheet" href="/style.css">
+<style>
+.entete-p { background:#fff; border:1px solid var(--bordure); border-radius:22px; padding:32px 30px;
+  box-shadow:var(--ombre); position:relative; overflow:hidden; margin:24px 0 26px; }
+.entete-p::before { content:''; position:absolute; top:0; left:0; right:0; height:5px; background:var(--degrade-accent); }
+.entete-p h1 { font-size:clamp(24px,3vw,34px); letter-spacing:-.025em; }
+.entete-p .accent { color:var(--orange); }
+.deux-col { display:grid; grid-template-columns:1.15fr .85fr; gap:20px; align-items:start; }
+@media (max-width:860px){ .deux-col { grid-template-columns:1fr; } }
+.moyen { display:flex; gap:13px; align-items:flex-start; padding:15px 0; border-bottom:1px solid var(--bordure); }
+.moyen:last-child { border-bottom:0; }
+.moyen .ico { width:44px; height:44px; border-radius:12px; display:grid; place-items:center;
+  font-size:20px; background:var(--bleu-clair); flex:none; }
+.moyen strong { display:block; font-size:14.5px; color:var(--marine); }
+.moyen a { font-size:14px; }
+.moyen .petit { color:var(--gris); }
+.faq details { border:1px solid var(--bordure); border-radius:var(--r-champ); padding:13px 16px; margin-bottom:9px; background:#fff; }
+.faq summary { cursor:pointer; font-weight:700; font-size:14px; color:var(--marine); }
+.faq p { font-size:13.5px; color:var(--texte); margin-top:8px; line-height:1.6; }
+.deux { display:grid; grid-template-columns:1fr 1fr; gap:0 14px; }
+@media (max-width:560px){ .deux { grid-template-columns:1fr; } }
+</style>
+<script src="/app.js"></script>
+<script src="/translations.js"></script>
+</head>
+<body>
+
+<nav class="nav">
+  <div class="conteneur nav-int">
+    <button class="burger" aria-label="Menu" aria-expanded="false" onclick="basculerMenu(this)">☰</button>
+    <a class="logo" href="/"><img src="/logo-marque.png" alt="" style="height:34px;width:auto">Konekte</a>
+    <div class="nav-liens">
+      <a href="/" data-i18n="acc.nav.accueil">Accueil</a>
+      <a href="/boutique.html" data-i18n="bq.nav">Boutique</a>
+      <a href="/mes-achats.html" data-i18n="nav.achats">Mes achats</a>
+      <a href="/categories.html" data-i18n="acc.nav.categories">Catégories</a>
+      <a href="/tutoriel.html" data-i18n="nav.tutoriel">Tutoriel</a>
+      <a href="/apropos.html" data-i18n="acc.nav.apropos">À propos</a>
+      <a href="/forfaits.html" data-i18n="nav.forfaits">Forfaits</a>
+      <a href="/contact.html" data-i18n="nav.contact">Contact</a>
+      <a class="btn btn-contour lien-mobile" href="/connexion.html" data-i18n="acc.nav.connexion">Se connecter</a>
+      <a class="btn btn-primaire lien-mobile" href="/inscription.html" data-i18n="acc.nav.inscrire">Inscrire mon entreprise</a>
+    </div>
+    <div class="nav-droite">
+      <button class="btn btn-fantome" id="btnLangue" style="font-size:14px" onclick="basculerLangue()">🌐 FR/HT</button>
+      <a class="btn btn-contour" href="/connexion.html" data-i18n="acc.nav.connexion">Se connecter</a>
+      <a class="btn btn-primaire" href="/inscription.html" data-i18n="acc.nav.inscrire">Inscrire mon entreprise</a>
+    </div>
+  </div>
+</nav>
+
+<main class="conteneur">
+  <section class="entete-p">
+    <span class="eyebrow">Confidentialité</span>
+    <h1>Ce que nous mesurons, <span class="accent">et ce que nous ne faisons pas</span></h1>
+    <p class="muet" style="margin-top:9px;max-width:62ch">Nous mesurons la fréquentation du site pour l'améliorer. Voici exactement ce qui est enregistré, et comment refuser.</p>
+  </section>
+
+  <div class="carte"><div class="carte-corps" style="padding:26px">
+    <h2 style="font-size:17px">Votre choix</h2>
+    <div id="etatConsent" class="mt"></div>
+  </div></div>
+
+  <div class="carte mt"><div class="carte-corps" style="padding:26px">
+    <h2 style="font-size:17px">Le cookie de mesure</h2>
+    <p class="petit muet" style="margin-top:4px">Un seul cookie, posé uniquement si vous l'acceptez.</p>
+    <div style="overflow:auto" class="mt"><table>
+      <tr><th>Nom</th><th>Rôle</th><th>Durée</th></tr>
+      <tr><td class="petit"><code>bk_mesure</code></td>
+          <td class="petit">Un identifiant tiré au sort, qui permet de savoir si vous revenez sur le site. Il ne contient ni nom, ni téléphone, ni adresse.</td>
+          <td class="petit">6 mois</td></tr>
+    </table></div>
+    <p class="aide mt">Ce cookie est déposé par notre site seul. Aucune régie publicitaire, aucun réseau social, aucun service étranger n'y a accès.</p>
+  </div></div>
+
+  <div class="carte mt"><div class="carte-corps" style="padding:26px">
+    <h2 style="font-size:17px">Ce que nous enregistrons</h2>
+    <ul style="margin:10px 0 0 18px">
+      <li class="petit" style="margin-bottom:6px">La page consultée et le moment de la visite.</li>
+      <li class="petit" style="margin-bottom:6px">Le type d'appareil — téléphone, tablette ou ordinateur.</li>
+      <li class="petit" style="margin-bottom:6px">Le site par lequel vous êtes arrivé — Facebook, WhatsApp, une recherche.</li>
+      <li class="petit" style="margin-bottom:6px">La langue et le fuseau horaire de votre navigateur, qui donnent une idée du pays.</li>
+    </ul>
+
+    <h2 style="font-size:17px;margin-top:22px">Ce que nous n'enregistrons pas</h2>
+    <ul style="margin:10px 0 0 18px">
+      <li class="petit" style="margin-bottom:6px"><strong>Aucune adresse IP.</strong> Elle sert à calculer une empreinte anonyme, puis elle est écartée.</li>
+      <li class="petit" style="margin-bottom:6px">Aucune localisation précise. Le pays est déduit du fuseau horaire, jamais du GPS.</li>
+      <li class="petit" style="margin-bottom:6px">Aucun suivi d'un site à l'autre. Nous ne savons rien de ce que vous faites ailleurs.</li>
+      <li class="petit" style="margin-bottom:6px">Aucune revente, aucun partage avec des tiers.</li>
+    </ul>
+
+    <h2 style="font-size:17px;margin-top:22px">Combien de temps</h2>
+    <p class="petit muet" style="margin-top:4px">Les visites détaillées sont effacées après six mois. Seuls des totaux sans identifiant subsistent au-delà.</p>
+
+    <h2 style="font-size:17px;margin-top:22px">Si vous refusez</h2>
+    <p class="petit muet" style="margin-top:4px">Le site fonctionne exactement de la même façon. Votre visite est simplement comptée sans qu'on puisse la relier à une autre : nous savons qu'il y a eu une visite, pas qu'il s'agit de vous.</p>
+
+    <h2 style="font-size:17px;margin-top:22px">Les données que vous nous confiez</h2>
+    <p class="petit muet" style="margin-top:4px">Quand vous réservez ou commandez, votre nom et votre téléphone sont transmis au commerçant concerné, uniquement pour honorer votre demande. Ces données ne sont ni revendues ni cédées.</p>
+
+    <h2 style="font-size:17px;margin-top:22px">Nous écrire</h2>
+    <p class="petit muet" style="margin-top:4px">Pour toute question ou pour demander la suppression de vos données : <strong>contact@bizniskonekte.tech</strong> ou WhatsApp <strong>+1 514 226 1860</strong>.</p>
+  </div></div>
+</main>
+
+<footer class="pied-riche" style="margin-top:56px">
+  <div class="conteneur">
+    <div class="pied-bas">
+      <p class="petit">© 2026 <strong>KONEKTE</strong> — <span data-i18n="pied.droits">Tous droits réservés.</span></p>
+      <p class="petit"><a href="/mes-achats.html">Mes achats</a> · <a href="/recu.html">Mon reçu</a> · <a href="/confidentialite.html">Confidentialité</a></p>
+      <p class="petit" data-i18n="pied.concu">Conçu en Haïti 💙 pour les entreprises haïtiennes.</p>
+    </div>
+  </div>
+</footer>
+
+<div id="toast"></div>
+<script>
+function etatConsentement(){
+  const c = localStorage.getItem('bkConsent');
+  const z = document.getElementById('etatConsent');
+  z.innerHTML = c === 'oui'
+    ? `<div class="panneau" style="border-color:var(--vert)"><strong>✅ Vous avez accepté la mesure d'audience.</strong>
+       <p class="petit muet" style="margin-top:4px">Un cookie enregistre un identifiant tiré au sort, valable six mois.</p>
+       <button class="btn btn-contour btn-petit mt" onclick="changerConsentement('non')">Retirer mon accord</button></div>`
+    : (c === 'non'
+      ? `<div class="panneau"><strong>Vous avez refusé la mesure d'audience.</strong>
+         <p class="petit muet" style="margin-top:4px">Aucun cookie de mesure n'est posé. Vos visites restent comptées de façon anonyme.</p>
+         <button class="btn btn-contour btn-petit mt" onclick="changerConsentement('oui')">Accepter</button></div>`
+      : `<div class="panneau"><strong>Vous n'avez pas encore choisi.</strong>
+         <div class="flex mt" style="gap:8px"><button class="btn btn-primaire btn-petit" onclick="changerConsentement('oui')">Accepter</button>
+         <button class="btn btn-contour btn-petit" onclick="changerConsentement('non')">Refuser</button></div></div>`);
+}
+function changerConsentement(choix){
+  localStorage.setItem('bkConsent', choix);
+  fetch('/api/visite', { method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ consentement: choix === 'oui', chemin: location.pathname }) }).catch(()=>{});
+  etatConsentement();
+  toast(choix === 'oui' ? 'Merci, votre accord est enregistré.' : 'Votre refus est enregistré.');
+}
+etatConsentement();
+</script>
+</body>
+</html>

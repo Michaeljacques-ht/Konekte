@@ -1,0 +1,215 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Poser une question — Konekte</title>
+<link rel="icon" href="/favicon.ico" sizes="any">
+<link rel="icon" type="image/png" sizes="192x192" href="/icone-192.png">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<meta name="theme-color" content="#0B2C6B">
+<meta name="description" content="Questions fréquentes sur Konekte : inscription, forfaits, paiement, livraison, réservation. Posez votre question à notre équipe.">
+<link rel="stylesheet" href="/style.css">
+<style>
+.entete-p { background:#fff; border:1px solid var(--bordure); border-radius:22px; padding:32px 30px;
+  box-shadow:var(--ombre); position:relative; overflow:hidden; margin:24px 0 26px; }
+.entete-p::before { content:''; position:absolute; top:0; left:0; right:0; height:5px; background:var(--degrade-accent); }
+.entete-p h1 { font-size:clamp(24px,3vw,34px); letter-spacing:-.025em; }
+.entete-p .accent { color:var(--orange); }
+.deux-col { display:grid; grid-template-columns:1.15fr .85fr; gap:20px; align-items:start; }
+@media (max-width:860px){ .deux-col { grid-template-columns:1fr; } }
+.moyen { display:flex; gap:13px; align-items:flex-start; padding:15px 0; border-bottom:1px solid var(--bordure); }
+.moyen:last-child { border-bottom:0; }
+.moyen .ico { width:44px; height:44px; border-radius:12px; display:grid; place-items:center;
+  font-size:20px; background:var(--bleu-clair); flex:none; }
+.moyen strong { display:block; font-size:14.5px; color:var(--marine); }
+.moyen a { font-size:14px; }
+.moyen .petit { color:var(--gris); }
+.faq details { border:1px solid var(--bordure); border-radius:var(--r-champ); padding:13px 16px; margin-bottom:9px; background:#fff; }
+.faq summary { cursor:pointer; font-weight:700; font-size:14px; color:var(--marine); }
+.faq p { font-size:13.5px; color:var(--texte); margin-top:8px; line-height:1.6; }
+.deux { display:grid; grid-template-columns:1fr 1fr; gap:0 14px; }
+@media (max-width:560px){ .deux { grid-template-columns:1fr; } }
+.themes { display:flex; gap:7px; flex-wrap:wrap; margin:18px 0 6px; }
+.theme { border:1.5px solid var(--bordure); background:#fff; border-radius:var(--r-pilule);
+  padding:7px 15px; font:inherit; font-size:13px; font-weight:700; color:var(--texte); cursor:pointer; }
+.theme:hover { border-color:var(--bleu); background:var(--bleu-clair); }
+.theme.on { background:var(--degrade); border-color:transparent; color:#fff; }
+</style>
+<script src="/app.js"></script>
+<script src="/translations.js"></script>
+</head>
+<body>
+
+<nav class="nav">
+  <div class="conteneur nav-int">
+    <button class="burger" aria-label="Menu" aria-expanded="false" onclick="basculerMenu(this)">☰</button>
+    <a class="logo" href="/"><img src="/logo-marque.png" alt="" style="height:34px;width:auto">Konekte</a>
+    <div class="nav-liens">
+      <a href="/" data-i18n="acc.nav.accueil">Accueil</a>
+      <a href="/boutique.html" data-i18n="bq.nav">Boutique</a>
+      <a href="/mes-achats.html" data-i18n="nav.achats">Mes achats</a>
+      <a href="/categories.html" data-i18n="acc.nav.categories">Catégories</a>
+      <a href="/tutoriel.html" data-i18n="nav.tutoriel">Tutoriel</a>
+      <a href="/apropos.html" data-i18n="acc.nav.apropos">À propos</a>
+      <a href="/forfaits.html" data-i18n="nav.forfaits">Forfaits</a>
+      <a href="/contact.html" data-i18n="nav.contact">Contact</a>
+      <a class="btn btn-contour lien-mobile" href="/connexion.html" data-i18n="acc.nav.connexion">Se connecter</a>
+      <a class="btn btn-primaire lien-mobile" href="/inscription.html" data-i18n="acc.nav.inscrire">Inscrire mon entreprise</a>
+    </div>
+    <div class="nav-droite">
+      <button class="btn btn-fantome" id="btnLangue" style="font-size:14px" onclick="basculerLangue()">🌐 FR/HT</button>
+      <a class="btn btn-contour" href="/connexion.html" data-i18n="acc.nav.connexion">Se connecter</a>
+      <a class="btn btn-primaire" href="/inscription.html" data-i18n="acc.nav.inscrire">Inscrire mon entreprise</a>
+    </div>
+  </div>
+</nav>
+
+<main class="conteneur">
+  <section class="entete-p">
+    <span class="eyebrow" data-i18n="qu.eyebrow">Aide</span>
+    <h1><span data-i18n="qu.titre1">Vos questions, </span><span class="accent" data-i18n="qu.titre2">nos réponses</span></h1>
+    <p class="muet" style="margin-top:9px;max-width:60ch" data-i18n="qu.intro">Cherchez d'abord parmi les réponses ci-dessous. Si vous ne trouvez pas, posez votre question : nous répondons sous 24 heures ouvrables.</p>
+    <input id="rechQ" style="margin-top:16px;max-width:520px" placeholder="Rechercher une réponse…" data-i18n-placeholder="qu.rech">
+    <div class="themes" id="themes"></div>
+  </section>
+
+  <div class="deux-col">
+    <div>
+      <div class="faq" id="listeQ"></div>
+    </div>
+
+    <div>
+      <div class="carte" id="formQ"><div class="carte-corps">
+        <h2 style="font-size:16px" data-i18n="qu.form.titre">Votre question</h2>
+        <p class="petit muet" style="margin-top:4px" data-i18n="qu.form.sous">Elle n'est pas dans la liste ? Écrivez-la ici.</p>
+        <label data-i18n="ct.nom">Votre nom *</label><input id="qNom">
+        <label data-i18n="ct.email">Email</label><input id="qEmail" type="email">
+        <label data-i18n="ct.tel">Téléphone WhatsApp</label><input id="qTel" placeholder="509 …">
+        <p class="aide" data-i18n="ct.aide">Laissez au moins l'un des deux pour que nous puissions vous répondre.</p>
+        <label data-i18n="qu.question">Votre question *</label>
+        <textarea id="qMessage" rows="5" placeholder="Posez votre question…"></textarea>
+        <p class="champ-erreur" id="errQ"></p>
+        <button class="btn btn-primaire" style="width:100%" onclick="envoyerQuestion()" data-i18n="qu.envoyer">Envoyer ma question</button>
+      </div></div>
+
+      <div class="carte mt"><div class="carte-corps">
+        <h2 style="font-size:16px" data-i18n="qu.direct">Besoin d'une réponse tout de suite ?</h2>
+        <div class="moyen">
+          <div class="ico" style="background:var(--vert-fond)">💬</div>
+          <div><strong>WhatsApp</strong>
+            <a href="https://wa.me/15142261860" target="_blank" rel="noopener">+1 514 226 1860</a>
+            <p class="petit" data-i18n="ct.wa.d">Le plus rapide — réponse en journée.</p></div>
+        </div>
+        <div class="moyen">
+          <div class="ico" style="background:var(--orange-fond)">✉️</div>
+          <div><strong>Email</strong>
+            <a href="mailto:contact@bizniskonekte.tech">contact@bizniskonekte.tech</a></div>
+        </div>
+      </div></div>
+    </div>
+  </div>
+</main>
+
+<footer class="pied-riche" style="margin-top:56px">
+  <div class="conteneur">
+    <div class="pied-bas">
+      <p class="petit">© 2026 <strong>KONEKTE</strong> — <span data-i18n="pied.droits">Tous droits réservés.</span></p>
+      <p class="petit"><a href="/mes-achats.html">Mes achats</a> · <a href="/recu.html">Mon reçu</a> · <a href="/confidentialite.html">Confidentialité</a></p>
+      <p class="petit" data-i18n="pied.concu">Conçu en Haïti 💙 pour les entreprises haïtiennes.</p>
+    </div>
+  </div>
+</footer>
+
+<div id="toast"></div>
+<script>
+const QUESTIONS = [
+  { t:'inscription', q:{fr:"Comment inscrire mon entreprise ?", ht:"Kijan pou m enskri biznis mwen ?"},
+    r:{fr:"L'inscription se fait en cinq étapes : vos informations, la lecture du règlement, le choix du forfait, la signature du contrat et l'activation. Comptez quelques minutes. Votre espace est ensuite examiné avant publication.",
+       ht:"Enskripsyon an fèt an senk etap : enfòmasyon ou, lekti règleman an, chwa fòfè a, siyati kontra a ak aktivasyon. Sa pran kèk minit. Apre sa nou egzamine espas ou anvan li parèt."} },
+  { t:'inscription', q:{fr:"Faut-il un ordinateur ?", ht:"Èske m bezwen yon òdinatè ?"},
+    r:{fr:"Non. Tout fonctionne depuis un téléphone, y compris la gestion de votre espace, vos rendez-vous et vos commandes.",
+       ht:"Non. Tout bagay mache sou yon telefòn, menm jesyon espas ou, randevou ou ak kòmand ou yo."} },
+  { t:'forfaits', q:{fr:"Combien coûte la plateforme ?", ht:"Konbyen platfòm nan koute ?"},
+    r:{fr:"Trois forfaits : Découverte à 1 000 HTG par mois, Pro à 1 500 HTG, Hôtellerie & Commerce à 2 500 HTG. Tous démarrent par 30 jours offerts.",
+       ht:"Twa fòfè : Dekouvèt 1 000 goud pa mwa, Pro 1 500 goud, Otèl & Komès 2 500 goud. Tout kòmanse ak 30 jou gratis."} },
+  { t:'forfaits', q:{fr:"Que se passe-t-il après les 30 jours ?", ht:"Kisa k ap pase apre 30 jou yo ?"},
+    r:{fr:"Votre abonnement devient exigible selon le forfait choisi. Vous pouvez changer de forfait ou arrêter à tout moment avant l'échéance, sans frais.",
+       ht:"Abònman ou vin egzijib selon fòfè ou chwazi a. Ou ka chanje fòfè oswa kanpe nenpòt lè anvan dat la, san frè."} },
+  { t:'forfaits', q:{fr:"Le forfait limite-t-il les fonctions de mon métier ?", ht:"Èske fòfè a limite fonksyon metye m ?"},
+    r:{fr:"Non. Les fonctions de votre métier sont ouvertes dans tous les forfaits : un restaurant a sa carte, une école ses inscriptions, un notaire ses dossiers, un hôtel ses chambres, dès le forfait Découverte. Le forfait décide de deux choses seulement : le volume — en Découverte, 3 services, 20 produits, 1 membre d'équipe, 3 chambres — et les options de croissance : vente et livraison en ligne, précommandes, paiement en ligne, comptabilité.",
+       ht:"Non. Fonksyon metye ou louvri nan tout fòfè : yon restoran gen kat li, yon lekòl enskripsyon li, yon notè dosye li, yon otèl chanm li, depi fòfè Dekouvèt. Fòfè a deside de bagay sèlman : kantite a — nan Dekouvèt, 3 sèvis, 20 pwodwi, 1 moun nan ekip la, 3 chanm — epi opsyon pou grandi : vann ak livrezon an liy, prekòmand, peman an liy, kontablite."} },
+  { t:'forfaits', q:{fr:"Puis-je vendre un produit avant de l'avoir reçu ?", ht:"Èske m ka vann yon pwodwi anvan m resevwa l ?"},
+    r:{fr:"Oui, avec le forfait Pro. Marquez le produit « Bientôt disponible », indiquez la date d'arrivée prévue si vous la connaissez, et autorisez les précommandes : le client réserve son exemplaire et vous recevez la commande marquée « Précommande ». Le stock n'est pas décompté puisque la marchandise n'est pas encore arrivée.",
+       ht:"Wi, ak fòfè Pro. Make pwodwi a « Byento disponib », mete dat li dwe rive si ou konnen l, epi otorize prekòmand : kliyan an rezève pa l epi ou resevwa kòmand lan make « Prekòmand ». Nou pa retire nan stòk la paske machandiz la poko rive."} },
+  { t:'forfaits', q:{fr:"Qu'est-ce que la commission ?", ht:"Kisa komisyon an ye ?"},
+    r:{fr:"Un pourcentage prélevé sur les paiements encaissés par la plateforme : 7,5 % en Découverte, 5 % en Pro, 3 % en Hôtellerie & Commerce. Rien n'est prélevé sur les paiements réglés en espèces à la livraison.",
+       ht:"Yon pousantaj sou lajan platfòm nan ankese : 7,5 % nan Dekouvèt, 5 % nan Pro, 3 % nan Otèl & Komès. Nou pa pran anyen sou lajan kach yo peye lè livrezon."} },
+  { t:'paiement', q:{fr:"Quels moyens de paiement sont acceptés ?", ht:"Ki mwayen peman nou aksepte ?"},
+    r:{fr:"MonCash, NatCash et Kashpaw pour le paiement en ligne, ou en espèces à la livraison et au retrait. Chaque commerçant choisit ce qu'il accepte.",
+       ht:"MonCash, NatCash ak Kashpaw pou peye an liy, oswa kach lè yo livre oswa lè w vin chèche. Chak komèsan chwazi sa li aksepte."} },
+  { t:'paiement', q:{fr:"Quand est-ce que je reçois mon argent ?", ht:"Kilè m ap resevwa lajan m ?"},
+    r:{fr:"Dès qu'un paiement en ligne est confirmé, le montant arrive sur votre portefeuille, commission déduite. Vous demandez le retrait vers MonCash ou NatCash quand vous le souhaitez.",
+       ht:"Depi yon peman an liy konfime, lajan an antre nan pòtfèy ou, komisyon retire. Ou mande retrè a nan MonCash oswa NatCash lè ou vle."} },
+  { t:'commandes', q:{fr:"Comment suivre ma commande ?", ht:"Kijan pou m swiv kòmand mwen ?"},
+    r:{fr:"Un courriel vous prévient à chaque étape. Vous pouvez aussi suivre votre commande dans « Mes achats », avec votre référence et votre téléphone.",
+       ht:"Yon imel avèti ou nan chak etap. Ou ka swiv kòmand ou nan « Acha mwen yo » tou, ak referans ou ak telefòn ou."} },
+  { t:'commandes', q:{fr:"La livraison est-elle disponible partout ?", ht:"Èske livrezon disponib tout kote ?"},
+    r:{fr:"Chaque commerçant définit ses zones de livraison et leurs tarifs. Certains proposent uniquement le retrait sur place. C'est indiqué avant de valider votre commande.",
+       ht:"Chak komèsan defini zòn livrezon li ak tarif yo. Gen kèk ki pran sèlman vin chèche sou plas. Sa parèt anvan ou valide kòmand ou."} },
+  { t:'compte', q:{fr:"J'ai oublié mon mot de passe.", ht:"Mwen bliye modpas mwen."},
+    r:{fr:"Utilisez le lien « Mot de passe oublié ? » sur la page de connexion. Un code vous sera envoyé sur le WhatsApp ou l'email de votre compte.",
+       ht:"Sèvi ak lyen « Modpas bliye ? » sou paj koneksyon an. Yon kòd ap rive sou WhatsApp oswa imèl kont ou."} },
+  { t:'compte', q:{fr:"Comment protéger mon compte ?", ht:"Kijan pou m pwoteje kont mwen ?"},
+    r:{fr:"Activez la vérification en deux étapes dans Paramètres : un code vous est alors envoyé par courriel à chaque connexion.",
+       ht:"Aktive verifikasyon an de etap nan Paramèt : yon kòd vin sou WhatsApp ou chak fwa ou konekte."} }
+];
+const THEMES = { tout:{fr:'Tout',ht:'Tout'}, inscription:{fr:'Inscription',ht:'Enskripsyon'},
+  forfaits:{fr:'Forfaits',ht:'Fòfè'}, paiement:{fr:'Paiement',ht:'Peman'},
+  commandes:{fr:'Commandes',ht:'Kòmand'}, compte:{fr:'Mon compte',ht:'Kont mwen'} };
+let themeActif = 'tout';
+
+function lg(){ return localStorage.getItem('langue') || 'fr'; }
+function dessinerThemes(){
+  document.getElementById('themes').innerHTML = Object.entries(THEMES).map(([c,n]) =>
+    `<button class="theme ${themeActif===c?'on':''}" onclick="filtrerTheme('${c}')">${ech(n[lg()])}</button>`).join('');
+}
+function filtrerTheme(c){ themeActif = c; dessinerThemes(); dessinerQuestions(); }
+function dessinerQuestions(){
+  const rech = document.getElementById('rechQ').value.trim().toLowerCase();
+  const l = lg();
+  let liste = QUESTIONS.filter(x => themeActif === 'tout' || x.t === themeActif);
+  if (rech) liste = liste.filter(x => (x.q[l] + ' ' + x.r[l]).toLowerCase().includes(rech));
+  document.getElementById('listeQ').innerHTML = liste.length
+    ? liste.map(x => `<details><summary>${ech(x.q[l])}</summary><p>${ech(x.r[l])}</p></details>`).join('')
+    : `<p class="muet petit">${l==='ht'?'Anyen pa jwenn. Poze kesyon ou pi ba a.':'Aucune réponse trouvée. Posez votre question ci-dessous.'}</p>`;
+}
+document.getElementById('rechQ').addEventListener('input', dessinerQuestions);
+
+async function envoyerQuestion(){
+  const err = document.getElementById('errQ');
+  const nom = document.getElementById('qNom').value.trim();
+  const msg = document.getElementById('qMessage').value.trim();
+  const email = document.getElementById('qEmail').value.trim();
+  const tel = document.getElementById('qTel').value.trim();
+  const l = lg();
+  if (!nom || !msg) { err.textContent = l==='ht'?'Non ou ak kesyon ou obligatwa.':'Votre nom et votre question sont obligatoires.'; return; }
+  if (!email && !tel) { err.textContent = l==='ht'?'Kite yon imèl oswa yon telefòn.':'Laissez un email ou un téléphone pour la réponse.'; return; }
+  err.textContent = '';
+  try {
+    const r = await api('/api/messages','POST',{ type:'question', nom, email, telephone: tel,
+      sujet: themeActif, message: msg });
+    document.getElementById('formQ').innerHTML = `
+      <div class="centre" style="padding:26px 0">
+        <div style="width:56px;height:56px;border-radius:50%;background:var(--vert);color:#fff;display:grid;place-items:center;font-size:26px;margin:0 auto 14px">✓</div>
+        <h2 style="font-size:19px">${l==='ht'?'Kesyon resevwa !':'Question reçue !'}</h2>
+        <p class="petit muet" style="margin-top:8px">${l==='ht'?'Referans':'Référence'} <strong>${r.reference}</strong></p>
+        <p class="petit muet" style="margin-top:6px">${l==='ht'?'Nou ap reponn ou nan mwens pase 24 è ouvrab.':'Nous vous répondons sous 24 heures ouvrables.'}</p>
+        <a class="btn btn-succes mt" target="_blank" rel="noopener" href="https://wa.me/15142261860">💬 WhatsApp</a>
+      </div>`;
+  } catch(e){ err.textContent = e.message; }
+}
+dessinerThemes(); dessinerQuestions();
+</script>
+</body>
+</html>

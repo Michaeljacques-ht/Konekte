@@ -1,0 +1,866 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Administration — Konekte</title>
+<link rel="icon" href="/favicon.ico" sizes="any">
+<link rel="icon" type="image/png" sizes="192x192" href="/icone-192.png">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<meta name="theme-color" content="#0B2C6B">
+<link rel="stylesheet" href="/style.css">
+<style>
+body { background: var(--gris-clair); }
+.entete { background: var(--marine); color: #fff; padding: 16px 0; }
+.principal { max-width: 1060px; margin: 24px auto; padding: 0 20px; }
+.cartes-stats { display: grid; grid-template-columns: repeat(5, 1fr); gap: 14px; }
+.stat { background: #fff; border: 1px solid var(--bordure); border-radius: 14px; padding: 16px 18px; }
+.stat .valeur { font-size: 26px; font-weight: 800; }
+@media (max-width: 800px){ .cartes-stats { grid-template-columns: 1fr 1fr; } }
+.courbe { display: flex; align-items: flex-end; gap: 2px; height: 110px;
+  background: var(--gris-clair); border-radius: 10px; padding: 8px; }
+.courbe .col { flex: 1; display: flex; align-items: flex-end; height: 100%; }
+.courbe .barre { width: 100%; background: var(--degrade); border-radius: 3px 3px 0 0; min-height: 2px; }
+.courbe .col:hover .barre { background: var(--orange); }
+</style>
+</head>
+<body>
+<header class="entete">
+  <div class="conteneur flex entre">
+    <a class="logo" style="color:#fff" href="/"><img src="/logo-marque.png" alt="" style="height:32px;width:auto;background:#fff;border-radius:8px;padding:2px">Konekte <span class="badge badge-bleu" style="margin-left:6px">Admin</span></a>
+    <button class="btn btn-contour btn-petit" onclick="deconnexion()">Se déconnecter</button>
+  </div>
+</header>
+
+<main class="principal">
+  <h1 style="font-size:20px" class="mb">Administration de la plateforme</h1>
+  <div class="cartes-stats" id="stats"></div>
+
+  <div class="carte mt"><div class="carte-corps">
+    <div class="flex entre" style="flex-wrap:wrap;gap:10px">
+      <h2 style="font-size:16px">Entreprises inscrites</h2>
+      <select id="filtre" style="width:auto" onchange="dessiner()">
+        <option value="">Toutes</option>
+        <option value="en_attente">En attente de validation</option>
+        <option value="approuvee">Approuvées</option>
+        <option value="suspendue">Suspendues</option>
+      </select>
+    </div>
+    <div style="overflow:auto" class="mt"><table id="tableEnt"></table></div>
+  </div></div>
+
+  <div class="carte mt"><div class="carte-corps">
+    <div class="flex entre">
+      <h2 style="font-size:16px">📊 Fréquentation</h2>
+      <select id="periodeFreq" style="width:auto" onchange="chargerFrequentation()">
+        <option value="7">7 derniers jours</option>
+        <option value="30" selected>30 derniers jours</option>
+        <option value="90">3 derniers mois</option>
+        <option value="365">12 derniers mois</option>
+      </select>
+    </div>
+    <div id="freqChiffres" class="cartes-stats mt"></div>
+    <div id="freqCourbe" class="mt"></div>
+    <div class="grille mt" style="grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px" id="freqDetails"></div>
+    <p class="aide mt">Les visiteurs ne sont pas identifiés : aucune adresse IP n'est conservée, et l'empreinte anonyme change chaque jour. La région est déduite du fuseau horaire du navigateur.</p>
+  </div></div>
+
+  <div class="carte mt"><div class="carte-corps">
+    <div class="flex entre" style="flex-wrap:wrap;gap:10px">
+      <h2 style="font-size:16px">🗂️ Catégories et activités</h2>
+      <div class="flex" style="gap:8px">
+        <button class="btn btn-contour btn-petit" onclick="ouvrirFamille()">+ Catégorie</button>
+        <button class="btn btn-primaire btn-petit" onclick="ouvrirMetier()">+ Activité</button>
+      </div>
+    </div>
+    <p class="petit muet" style="margin-top:6px">Ce qui est livré avec la plateforme ne se modifie pas d'ici : des modèles de reçu et des parcours de dossier s'appuient dessus. Vos ajouts, eux, se corrigent et se retirent librement.</p>
+    <h3 style="font-size:14px;margin-top:16px">Catégories</h3>
+    <div style="overflow:auto"><table id="tableFamilles"></table></div>
+    <h3 style="font-size:14px;margin-top:18px">Activités</h3>
+    <div class="flex entre mt" style="flex-wrap:wrap;gap:8px">
+      <select id="filtreActivites" style="width:auto" onchange="dessinerActivites()">
+        <option value="perso">Mes ajouts</option>
+        <option value="">Toutes</option>
+        <option value="base">Livrées avec la plateforme</option>
+      </select>
+      <span class="petit muet" id="resumeActivites"></span>
+    </div>
+    <div style="overflow:auto" class="mt"><table id="tableMetiers"></table></div>
+  </div></div>
+
+  <div class="carte mt"><div class="carte-corps">
+    <h2 style="font-size:16px">💾 Sauvegarde des données</h2>
+    <p class="petit muet" style="margin-top:6px" id="infoStockage"></p>
+    <div class="flex mt" style="gap:8px;flex-wrap:wrap">
+      <a class="btn btn-primaire btn-petit" href="/api/admin/sauvegarde">⬇ Télécharger une sauvegarde</a>
+      <label class="btn btn-contour btn-petit" style="cursor:pointer;margin:0">
+        ⬆ Restaurer un fichier
+        <input type="file" id="fichierRestaure" accept="application/json,.json" style="display:none" onchange="restaurer(this)">
+      </label>
+    </div>
+    <p class="aide mt">Téléchargez une sauvegarde <strong>avant chaque déploiement</strong> tant que le disque persistant n'est pas configuré. La restauration remplace toutes les données existantes.</p>
+    <p class="champ-erreur" id="errRestaure"></p>
+  </div></div>
+
+  <div class="carte mt"><div class="carte-corps">
+    <div class="flex entre">
+      <h2 style="font-size:16px">📨 Messages reçus</h2>
+      <select id="filtreMsg" style="width:auto" onchange="chargerMessages()">
+        <option value="">Tous</option>
+        <option value="nouveau">Nouveaux</option>
+        <option value="contact">Contact</option>
+        <option value="partenaire">Partenariat</option>
+        <option value="question">Questions</option>
+      </select>
+    </div>
+    <div id="listeMessages" class="mt"></div>
+  </div></div>
+</main>
+
+<!-- Dossier d'inscription -->
+<div class="voile" id="voileDossier">
+  <div class="modale" style="max-width:640px">
+    <div id="corpsDossier"></div>
+    <div class="flex" style="gap:8px;justify-content:flex-end;margin-top:22px">
+      <button class="btn btn-fantome" onclick="fermerDossier()">Fermer</button>
+    </div>
+  </div>
+</div>
+
+<!-- Suppression définitive -->
+<div class="voile" id="voileSuppression">
+  <div class="modale">
+    <h2 style="font-size:19px;color:var(--rouge)">Supprimer définitivement</h2>
+    <p class="mt">Vous êtes sur le point de supprimer <strong id="nomASupprimer"></strong>.</p>
+    <p class="petit muet mt" id="resumeSuppression"></p>
+    <p class="petit mt"><strong>Cette action est irréversible.</strong> Les données ne sont pas
+    récupérables depuis la plateforme — seule une sauvegarde téléchargée avant la suppression
+    permettrait de les retrouver.</p>
+    <label class="mt">Recopiez le nom de l'entreprise pour confirmer</label>
+    <input id="champConfirmation" placeholder="Nom exact de l'entreprise" autocomplete="off">
+    <p class="champ-erreur" id="errSuppression"></p>
+    <div class="flex" style="gap:8px;justify-content:flex-end;margin-top:16px">
+      <button class="btn btn-fantome" onclick="fermerSuppression()">Annuler</button>
+      <button class="btn btn-danger" id="btnSupprimer" onclick="confirmerSuppression()">Supprimer définitivement</button>
+    </div>
+  </div>
+</div>
+
+<!-- Message WhatsApp d'approbation -->
+<div class="voile" id="voileWa">
+  <div class="modale" style="max-width:620px">
+    <div class="flex entre" style="gap:10px;flex-wrap:wrap">
+      <h2 style="font-size:19px">💬 Message d'approbation</h2>
+      <select id="waLangue" style="width:auto" onchange="chargerMessageWa()">
+        <option value="fr">Français</option>
+        <option value="ht">Kreyòl</option>
+      </select>
+    </div>
+    <p class="petit muet mt" id="waDestinataire"></p>
+    <p class="petit mt" id="waDejaEnvoye" style="display:none"></p>
+    <label class="mt">Message — relisez-le, vous pouvez le corriger avant d'envoyer</label>
+    <textarea id="waTexte" rows="14" style="font-family:inherit;line-height:1.5"></textarea>
+    <p class="aide">WhatsApp s'ouvre avec ce texte déjà écrit. Vous l'envoyez vous-même, de votre compte : rien ne part sans votre geste.</p>
+    <p class="champ-erreur" id="errWa"></p>
+    <div class="flex" style="gap:8px;justify-content:space-between;align-items:center;margin-top:16px;flex-wrap:wrap">
+      <button class="btn btn-fantome btn-petit" onclick="ouvrirModeleWa()">Modifier le message pré-enregistré</button>
+      <div class="flex" style="gap:8px">
+        <button class="btn btn-fantome" onclick="fermerWa()">Fermer</button>
+        <button class="btn btn-succes" id="btnWa" onclick="envoyerWa()">Ouvrir WhatsApp</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modèle pré-enregistré -->
+<div class="voile" id="voileModeleWa">
+  <div class="modale" style="max-width:680px">
+    <h2 style="font-size:19px">Message pré-enregistré</h2>
+    <p class="petit muet mt">Ce texte sert de base à chaque envoi. Les variables entre accolades sont remplacées par les informations de l'entreprise au moment de l'ouverture.</p>
+    <div class="petit mt" id="waVariables" style="display:flex;gap:6px;flex-wrap:wrap"></div>
+    <label class="mt">Version française</label>
+    <textarea id="modeleFr" rows="12" style="font-family:inherit;line-height:1.5"></textarea>
+    <label class="mt">Version créole</label>
+    <textarea id="modeleHt" rows="12" style="font-family:inherit;line-height:1.5"></textarea>
+    <p class="aide">Videz un champ pour revenir au texte livré avec la plateforme.</p>
+    <p class="champ-erreur" id="errModeleWa"></p>
+    <div class="flex" style="gap:8px;justify-content:flex-end;margin-top:16px">
+      <button class="btn btn-fantome" onclick="fermerModeleWa()">Annuler</button>
+      <button class="btn btn-primaire" id="btnModeleWa" onclick="enregistrerModeleWa()">Enregistrer</button>
+    </div>
+  </div>
+</div>
+
+<!-- Catégorie (famille) -->
+<div class="voile" id="voileFamille">
+  <div class="modale">
+    <h2 style="font-size:19px" id="titreFamille">Nouvelle catégorie</h2>
+    <p class="petit muet mt">Une catégorie regroupe des activités et forme une entrée de la page « Découvrir les entreprises ».</p>
+    <div class="grille mt" style="grid-template-columns:70px 1fr;gap:10px">
+      <div><label>Icône</label><input id="famIco" maxlength="4" placeholder="🌾" style="text-align:center;font-size:20px"></div>
+      <div><label>Nom</label><input id="famNom" maxlength="40" placeholder="Agriculture"></div>
+    </div>
+    <label class="mt">Description en français</label>
+    <input id="famDescFr" maxlength="200" placeholder="Fermes, coopératives et vente de récoltes.">
+    <label class="mt">Description en créole <span class="petit muet">(facultatif)</span></label>
+    <input id="famDescHt" maxlength="200" placeholder="Fèm, koperativ ak vann rekòt.">
+    <p class="champ-erreur" id="errFamille"></p>
+    <div class="flex" style="gap:8px;justify-content:flex-end;margin-top:16px">
+      <button class="btn btn-fantome" onclick="fermerFamille()">Annuler</button>
+      <button class="btn btn-primaire" id="btnFamille" onclick="enregistrerFamille()">Enregistrer</button>
+    </div>
+  </div>
+</div>
+
+<!-- Activité (métier) -->
+<div class="voile" id="voileMetier">
+  <div class="modale" style="max-width:700px">
+    <h2 style="font-size:19px" id="titreMetier">Nouvelle activité</h2>
+    <p class="petit muet mt">L'activité décide de ce que l'entreprise voit dans son espace : ses fonctions, le mot qu'elle emploie pour ses prestations, et la catégorie où le public la trouve.</p>
+    <div class="grille mt" style="grid-template-columns:70px 1fr 1fr;gap:10px">
+      <div><label>Icône</label><input id="metIco" maxlength="4" placeholder="📷" style="text-align:center;font-size:20px"></div>
+      <div><label>Nom en français</label><input id="metNomFr" maxlength="50" placeholder="Studio de photographie"></div>
+      <div><label>Nom en créole</label><input id="metNomHt" maxlength="50" placeholder="Estidyo foto"></div>
+    </div>
+    <label class="mt">Catégorie</label>
+    <select id="metFamille"></select>
+    <p class="petit muet" id="metCleApercu" style="margin-top:6px"></p>
+
+    <label class="mt">Fonctions de l'espace de gestion</label>
+    <div id="metModules" class="grille" style="grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:6px"></div>
+
+    <h3 style="font-size:14px;margin-top:18px">Vocabulaire</h3>
+    <p class="petit muet">Les mots que la plateforme emploiera pour cette activité. Laissez vide pour garder les valeurs par défaut.</p>
+    <div class="grille mt" style="grid-template-columns:1fr 1fr;gap:10px">
+      <div><label>Une prestation</label><input id="motService" maxlength="30" placeholder="Séance"></div>
+      <div><label>Plusieurs prestations</label><input id="motServicePl" maxlength="30" placeholder="Séances"></div>
+      <div><label>Un membre de l'équipe</label><input id="motAgent" maxlength="30" placeholder="Photographe"></div>
+      <div><label>L'équipe</label><input id="motAgentPl" maxlength="30" placeholder="Équipe"></div>
+      <div><label>Le rendez-vous</label><input id="motRdv" maxlength="30" placeholder="Séance photo"></div>
+      <div><label>Bouton public <span class="petit muet">(facultatif)</span></label><input id="motAction" maxlength="24" placeholder="Réserver"></div>
+    </div>
+
+    <label class="mt">Exemples de prestations <span class="petit muet">(séparés par des virgules)</span></label>
+    <input id="metExemples" placeholder="Portrait, Mariage, Photo d'identité, Reportage">
+    <label class="mt">Rayons du catalogue <span class="petit muet">(si l'activité vend des produits)</span></label>
+    <input id="metRayons" placeholder="Tirages, Cadres, Albums">
+    <p class="champ-erreur" id="errMetier"></p>
+    <div class="flex" style="gap:8px;justify-content:flex-end;margin-top:16px">
+      <button class="btn btn-fantome" onclick="fermerMetier()">Annuler</button>
+      <button class="btn btn-primaire" id="btnMetier" onclick="enregistrerMetier()">Enregistrer</button>
+    </div>
+  </div>
+</div>
+
+<script src="/app.js"></script>
+<script>
+// ===== Messages reçus =====
+const LIB_TYPE = { contact:'Contact', partenaire:'Partenariat', question:'Question' };
+async function chargerMessages(){
+  let liste = [];
+  try { liste = await api('/api/admin/messages'); } catch(e){ return; }
+  const f = document.getElementById('filtreMsg').value;
+  if (f === 'nouveau') liste = liste.filter(m => m.statut === 'nouveau');
+  else if (f) liste = liste.filter(m => m.type === f);
+  const z = document.getElementById('listeMessages');
+  if (!liste.length) { z.innerHTML = '<p class="muet petit">Aucun message.</p>'; return; }
+  z.innerHTML = liste.map(m => `
+    <div class="panneau" style="${m.statut==='nouveau'?'border-color:var(--orange)':''}">
+      <div class="flex entre" style="gap:10px;flex-wrap:wrap;align-items:flex-start">
+        <div style="flex:1;min-width:220px">
+          <strong>${ech(m.nom)}</strong>
+          <span class="badge badge-bleu" style="margin-left:6px">${LIB_TYPE[m.type]||m.type}</span>
+          ${m.statut==='nouveau'?'<span class="badge badge-orange" style="margin-left:4px">Nouveau</span>':''}
+          <p class="petit muet" style="margin-top:4px">
+            ${m.entreprise?ech(m.entreprise)+' · ':''}${m.sujet?ech(m.sujet):''}
+            ${m.activite?' · '+ech(m.activite):''}${m.ville?' · '+ech(m.ville):''}</p>
+          <p class="petit muet">
+            ${m.email?`<a href="mailto:${ech(m.email)}">${ech(m.email)}</a>`:''}
+            ${m.telephone?` · <a target="_blank" rel="noopener" href="https://wa.me/${String(m.telephone).replace(/\D/g,'')}">${ech(m.telephone)}</a>`:''}</p>
+          <p class="petit" style="margin-top:8px;white-space:pre-wrap">${ech(m.message)}</p>
+        </div>
+        <div style="text-align:right">
+          <p class="petit muet">${m.reference}<br>${m.creeLe.slice(0,10)}</p>
+          <div class="flex" style="gap:6px;margin-top:8px;flex-wrap:wrap;justify-content:flex-end">
+            ${m.statut!=='traite'?`<button class="btn btn-succes btn-petit" onclick="statutMsg('${m.id}','traite')">Traité</button>`:''}
+            <button class="btn btn-fantome btn-petit" onclick="supprimerMsg('${m.id}')">🗑️</button>
+          </div>
+        </div>
+      </div>
+    </div>`).join('');
+}
+async function statutMsg(id, statut){
+  await api('/api/admin/messages/'+id,'PUT',{statut}); chargerMessages();
+}
+
+// ===== Fréquentation =====
+async function chargerFrequentation(){
+  const jours = document.getElementById('periodeFreq').value;
+  let s;
+  try { s = await api('/api/admin/frequentation?jours=' + jours); } catch(e){ return; }
+
+  document.getElementById('freqChiffres').innerHTML = `
+    <div class="stat"><span class="petit muet">Visites</span><div class="valeur">${s.total}</div></div>
+    <div class="stat"><span class="petit muet">Visiteurs uniques</span><div class="valeur">${s.visiteurs}</div></div>
+    <div class="stat"><span class="petit muet">Depuis l'écran d'accueil</span><div class="valeur">${s.installees}</div></div>
+    <div class="stat"><span class="petit muet">Moyenne par jour</span><div class="valeur">${Math.round(s.total / s.periode)}</div></div>
+    ${s.fidelite && s.fidelite.mesurables ? `
+      <div class="stat"><span class="petit muet">Visiteurs qui reviennent</span><div class="valeur">${s.fidelite.habitues}</div>
+        <span class="petit muet">sur ${s.fidelite.mesurables} mesurables</span></div>` : ''}`;
+
+  // Courbe simple en barres, sans bibliothèque
+  const max = Math.max(1, ...s.parJour.map(j => j.visites));
+  const derniers = s.parJour.slice(-30);
+  document.getElementById('freqCourbe').innerHTML = `
+    <div class="courbe">${derniers.map(j => `
+      <div class="col" title="${j.jour} — ${j.visites} visite(s), ${j.visiteurs} visiteur(s)">
+        <div class="barre" style="height:${Math.round(j.visites / max * 100)}%"></div>
+      </div>`).join('')}</div>
+    <div class="flex entre petit muet" style="margin-top:4px">
+      <span>${derniers.length ? derniers[0].jour : ''}</span>
+      <span>${derniers.length ? derniers[derniers.length-1].jour : ''}</span>
+    </div>`;
+
+  const liste = (titre, donnees, unite) => `
+    <div class="panneau">
+      <strong class="petit">${titre}</strong>
+      ${donnees.length ? donnees.map(([k, n]) => `
+        <div class="flex entre" style="padding:5px 0;border-bottom:1px solid var(--bordure)">
+          <span class="petit">${ech(k)}</span><strong class="petit">${n}${unite||''}</strong>
+        </div>`).join('') : '<p class="petit muet" style="margin-top:6px">Aucune donnée</p>'}
+    </div>`;
+
+  const heurePointe = s.parHeure.indexOf(Math.max(...s.parHeure));
+  document.getElementById('freqDetails').innerHTML =
+    liste('🌍 Régions', s.regions) +
+    liste('🔗 Provenance', s.sources) +
+    liste('📱 Appareils', s.appareils) +
+    liste('🗣 Langues', s.langues) +
+    liste('📄 Pages les plus vues', s.pages) +
+    liste('🏢 Entreprises les plus consultées', s.entreprises) +
+    `<div class="panneau"><strong class="petit">🕐 Heure de pointe</strong>
+      <p style="font-size:22px;font-weight:800;color:var(--marine);margin-top:6px">${heurePointe}h — ${heurePointe+1}h</p>
+      <p class="petit muet">${s.parHeure[heurePointe]} visite(s) sur cette tranche</p></div>`;
+}
+chargerFrequentation();
+
+async function supprimerMsg(id){
+  if (!confirm('Supprimer ce message ?')) return;
+  await api('/api/admin/messages/'+id,'DELETE'); chargerMessages();
+}
+chargerMessages();
+
+// ===== Sauvegarde et restauration =====
+async function restaurer(input){
+  const f = input.files[0];
+  if (!f) return;
+  const err = document.getElementById('errRestaure');
+  err.textContent = '';
+  if (!confirm('Restaurer ce fichier ? Toutes les données actuelles seront remplacées.')) {
+    input.value = ''; return;
+  }
+  try {
+    const texte = await f.text();
+    const donnees = JSON.parse(texte);
+    const r = await api('/api/admin/restaurer','POST',{ donnees });
+    alert('Restauration terminée.\n\n'
+      + r.entreprises + ' entreprise(s)\n'
+      + r.utilisateurs + ' utilisateur(s)\n'
+      + r.rendezvous + ' rendez-vous\n'
+      + r.sejours + ' séjour(s)\n'
+      + r.commandes + ' commande(s)');
+    location.reload();
+  } catch(e){
+    err.textContent = e.message.includes('JSON') ? 'Fichier illisible : ce n\'est pas une sauvegarde valide.' : e.message;
+  }
+  input.value = '';
+}
+</script>
+<script>
+let entreprises = [];
+const BADGE_ENT = {
+  approuvee: '<span class="badge badge-vert">Approuvée</span>',
+  en_attente: '<span class="badge badge-orange">En attente</span>',
+  suspendue: '<span class="badge badge-rouge">Suspendue</span>'
+};
+
+async function deconnexion(){ await api('/api/deconnexion','POST'); location.href='/'; }
+
+async function charger(){
+  try {
+    const moi = await api('/api/moi');
+    if (moi.role !== 'admin') { location.href = '/dashboard.html'; return; }
+  } catch { location.href='/connexion.html'; return; }
+  /* Les icônes des catégories créées depuis cet écran viennent du
+     référentiel : sans ce chargement, le tableau des entreprises les
+     afficherait toutes avec l'étoile générique. */
+  await refMetiers();
+  const s = await api('/api/admin/stats');
+  document.getElementById('stats').innerHTML = `
+    <div class="stat"><span class="petit muet">Entreprises</span><div class="valeur">${s.entreprises}</div></div>
+    <div class="stat"><span class="petit muet">En attente</span><div class="valeur" style="color:var(--orange)">${s.enAttente}</div></div>
+    <div class="stat"><span class="petit muet">Rendez-vous</span><div class="valeur">${s.rendezvous}</div></div>
+    <div class="stat"><span class="petit muet">Avis</span><div class="valeur">${s.avis}</div></div>
+    <div class="stat"><span class="petit muet">Utilisateurs</span><div class="valeur">${s.utilisateurs}</div></div>`;
+  entreprises = await api('/api/admin/entreprises');
+  dessiner();
+}
+
+function dessiner(){
+  const f = document.getElementById('filtre').value;
+  const liste = entreprises.filter(e=>!f || e.statut===f);
+  document.getElementById('tableEnt').innerHTML =
+    '<tr><th>Entreprise</th><th>Catégorie</th><th>Contact</th><th>Activité</th><th>Configuration</th><th>Plan</th><th>Statut</th><th>Actions</th></tr>' +
+    (liste.length ? liste.map(e=>`
+    <tr>
+      <td><strong>${ech(e.nom)}</strong><div class="petit muet"><a target="_blank" href="/${e.slug}">/${e.slug} ↗</a></div></td>
+      <td>${ICONES_CAT[e.categorie]||'✨'} ${ech(e.categorie)}</td>
+      <td class="petit">${ech(e.email)}${e.courrielVerifie === false ? ' <span class="badge badge-orange" title="Le responsable n&apos;a pas encore cliqué sur son lien d&apos;activation">courriel non vérifié</span>' : ''}<br>${ech(e.telephone)||'—'}</td>
+      <td class="petit">${e.totalRdv} rendez-vous<br><span class="etoiles">${etoiles(e.note)}</span> (${e.total})</td>
+      <td>${celluleConfiguration(e)}</td>
+      <td>
+        <select onchange="majEnt('${e.id}',{plan:this.value})" style="width:auto;padding:5px 8px;font-size:13px">
+          <option value="gratuit" ${e.plan==='gratuit'?'selected':''}>Gratuit</option>
+          <option value="premium" ${e.plan==='premium'?'selected':''}>Premium</option>
+        </select>
+      </td>
+      <td>${BADGE_ENT[e.statut]}</td>
+      <td><div class="flex" style="gap:6px;flex-wrap:wrap">
+        <button class="btn btn-fantome btn-petit" onclick="voirDossier('${e.id}')" title="Voir le dossier d'inscription">📋 Dossier</button>
+        ${e.statut!=='approuvee' ? `<button class="btn btn-succes btn-petit" onclick="majEnt('${e.id}',{statut:'approuvee'})">Approuver</button>` : ''}
+        ${e.statut==='approuvee' ? `<button class="btn btn-danger btn-petit" onclick="majEnt('${e.id}',{statut:'suspendue'})">Suspendre</button>` : ''}
+        ${boutonWhatsApp(e)}
+        ${boutonsVersement(e)}
+        <button class="btn btn-fantome btn-petit" style="color:var(--rouge)" onclick="supprimerEnt('${e.id}')" title="Supprimer définitivement">🗑️</button>
+      </div></td>
+    </tr>`).join('') : '<tr><td colspan="8" class="muet centre">Aucune entreprise pour ce filtre.</td></tr>');
+}
+
+/* Taux de configuration : c'est le chiffre qui dit, avant l'abandon, quelle
+   entreprise va renoncer. Une page en ligne mais vide ne fait réserver
+   personne, et son responsable conclura au bout d'un mois que la plateforme
+   ne marche pas. La cellule nomme ce qui manque, pour que la relance soit
+   précise plutôt que générale. */
+function celluleConfiguration(e){
+  const c = e.configuration;
+  if (!c) return '<span class="petit muet">—</span>';
+  const couleur = c.pourcent >= 100 ? 'var(--vert)' : (c.pourcent >= 50 ? 'var(--orange)' : 'var(--rouge)');
+  const reste = c.manque.length
+    ? `<div class="petit muet" style="margin-top:3px">manque : ${ech(c.manque.join(', ').toLowerCase())}</div>`
+    : '<div class="petit" style="margin-top:3px;color:var(--vert)">page complète</div>';
+  return `<div class="petit"><strong style="color:${couleur}">${c.pourcent} %</strong>
+    <span class="muet">(${c.faits}/${c.total})</span></div>${reste}`;
+}
+
+/* ---- Entente de paiement par versement ----
+   L'entreprise déclare la référence de son entente avec Micro Crédit
+   Solidarité ; c'est ici qu'on constate qu'elle existe. Tant que personne
+   ne l'a constatée, le bouton « Payer par versement » reste invisible sur
+   la page publique, et c'est voulu : il engage l'organisme. */
+function boutonsVersement(e){
+  const v = e.versement || {};
+  if (!v.reference) return '';
+  if (!v.validee) return `<button class="btn btn-succes btn-petit"
+      onclick="validerEntente('${e.id}', true)"
+      title="Entente ${ech(v.reference)} déclarée par l'entreprise">💳 Valider l'entente (${ech(v.reference)})</button>
+    <button class="btn btn-fantome btn-petit" style="color:var(--rouge)"
+      onclick="validerEntente('${e.id}', false)">Refuser</button>`;
+  return `<button class="btn btn-fantome btn-petit"
+      onclick="validerEntente('${e.id}', false)"
+      title="Entente ${ech(v.reference)} validée${v.actif ? ' et active' : ''}">💳 ${v.actif ? 'Versement actif' : 'Entente validée'} — retirer</button>`;
+}
+
+async function validerEntente(id, valide){
+  let motif = '';
+  if (!valide) {
+    motif = prompt('Motif du refus (vu par l\'entreprise) :', '') ;
+    if (motif === null) return;
+  }
+  await majEnt(id, { versementValide: valide, motifRefus: motif });
+}
+
+/* ---- Dossier d'inscription ---- */
+function ligneFiche(etiquette, valeur, brut){
+  if (valeur === undefined || valeur === null || valeur === '') return '';
+  return `<div style="display:flex;gap:14px;padding:9px 0;border-bottom:1px solid var(--bordure)">
+    <span class="petit muet" style="flex:0 0 190px">${ech(etiquette)}</span>
+    <span style="flex:1;font-size:14px">${brut ? valeur : ech(valeur)}</span></div>`;
+}
+function dateHeure(iso){
+  if (!iso) return '';
+  const d = new Date(iso);
+  return isNaN(d) ? String(iso) : d.toLocaleString('fr-CA', { dateStyle:'long', timeStyle:'short' });
+}
+
+function voirDossier(id){
+  const e = entreprises.find(x => x.id === id);
+  if (!e) return;
+  const ab = e.abonnement || {};
+  const ct = ab.contrat || null;
+  const po = ab.politique || null;
+  const v = e.volumes || {};
+  const resp = (e.responsables || []).map(r =>
+    `${ech(r.nom)} &lt;${ech(r.email)}&gt;${r.courrielVerifie ? '' : ' <span class="badge badge-orange">courriel non vérifié</span>'}`
+  ).join('<br>') || '—';
+
+  document.getElementById('corpsDossier').innerHTML = `
+    <h2 style="font-size:19px">${ech(e.nom)}</h2>
+    <p class="petit muet" style="margin-top:2px">
+      <a target="_blank" href="/${e.slug}">/${e.slug} ↗</a> · inscrite le ${ech(dateHeure(e.creeLe))}</p>
+
+    <h3 class="petit" style="margin:20px 0 4px;color:#60A5FA;letter-spacing:.06em">RESPONSABLE</h3>
+    ${ligneFiche('Nom et adresse', resp, true)}
+
+    <h3 class="petit" style="margin:20px 0 4px;color:#60A5FA;letter-spacing:.06em">ENTREPRISE</h3>
+    ${ligneFiche('Métier déclaré', e.metier)}
+    ${ligneFiche('Catégorie', e.categorie)}
+    ${ligneFiche('Téléphone', e.telephone)}
+    ${ligneFiche('WhatsApp', e.whatsapp)}
+    ${ligneFiche('Adresse', e.adresse)}
+    ${ligneFiche('Courriel de contact', e.email)}
+    ${ligneFiche('Description', e.description)}
+
+    <h3 class="petit" style="margin:20px 0 4px;color:#60A5FA;letter-spacing:.06em">ABONNEMENT</h3>
+    ${ligneFiche('Forfait choisi', ab.forfait)}
+    ${ligneFiche('Essai gratuit jusqu\'au', ab.finEssai ? dateHeure(ab.finEssai) : '')}
+    ${ligneFiche('Statut', e.statut)}
+
+    <h3 class="petit" style="margin:20px 0 4px;color:#60A5FA;letter-spacing:.06em">ENGAGEMENTS SIGNÉS</h3>
+    ${ligneFiche('Politique acceptée', po ? dateHeure(po.le) : 'Non enregistrée')}
+    ${ct ? ligneFiche('Contrat signé par', ct.signature) : ''}
+    ${ct ? ligneFiche('En qualité de', ct.qualite) : ''}
+    ${ct ? ligneFiche('Signé le', dateHeure(ct.le)) : ''}
+    ${ct ? ligneFiche('Version du contrat', ct.version) : ''}
+    ${!ct ? ligneFiche('Contrat', 'Aucune signature enregistrée') : ''}
+
+    <h3 class="petit" style="margin:20px 0 4px;color:#60A5FA;letter-spacing:.06em">DONNÉES ACCUMULÉES</h3>
+    ${ligneFiche('Rendez-vous', String(e.totalRdv || 0))}
+    ${ligneFiche('Services', String(v.services || 0))}
+    ${ligneFiche('Produits', String(v.produits || 0))}
+    ${ligneFiche('Commandes', String(v.commandes || 0))}
+    ${ligneFiche('Chambres / séjours', `${v.chambres || 0} / ${v.sejours || 0}`)}
+    ${ligneFiche('Dossiers clients', String(v.dossiers || 0))}
+    ${ligneFiche('Employés', String(v.employes || 0))}
+    ${ligneFiche('Écritures comptables', String(v.ecritures || 0))}`;
+  document.getElementById('voileDossier').classList.add('ouvert');
+}
+function fermerDossier(){ document.getElementById('voileDossier').classList.remove('ouvert'); }
+
+/* ---- Suppression définitive ---- */
+function supprimerEnt(id){
+  const e = entreprises.find(x => x.id === id);
+  if (!e) return;
+  const v = e.volumes || {};
+  const total = (e.totalRdv||0) + (v.commandes||0) + (v.sejours||0) + (v.dossiers||0) + (v.ecritures||0);
+  document.getElementById('nomASupprimer').textContent = e.nom;
+  document.getElementById('resumeSuppression').innerHTML = total
+    ? `Cette entreprise a accumulé <strong>${total} enregistrement(s)</strong> :
+       ${e.totalRdv||0} rendez-vous, ${v.commandes||0} commande(s), ${v.sejours||0} séjour(s),
+       ${v.dossiers||0} dossier(s) et ${v.ecritures||0} écriture(s) comptable(s).
+       Tout sera effacé avec elle.`
+    : "Cette entreprise n'a encore aucune donnée enregistrée.";
+  document.getElementById('champConfirmation').value = '';
+  document.getElementById('errSuppression').textContent = '';
+  document.getElementById('voileSuppression').dataset.id = id;
+  document.getElementById('voileSuppression').dataset.nom = e.nom;
+  document.getElementById('voileSuppression').classList.add('ouvert');
+}
+function fermerSuppression(){ document.getElementById('voileSuppression').classList.remove('ouvert'); }
+
+async function confirmerSuppression(){
+  const voile = document.getElementById('voileSuppression');
+  const err = document.getElementById('errSuppression');
+  const saisi = document.getElementById('champConfirmation').value.trim();
+  if (saisi !== voile.dataset.nom) {
+    err.textContent = "Le nom saisi ne correspond pas. Recopiez-le exactement.";
+    return;
+  }
+  const b = document.getElementById('btnSupprimer');
+  b.disabled = true; b.textContent = 'Suppression…';
+  try {
+    const r = await api('/api/admin/entreprises/' + voile.dataset.id, 'DELETE', { confirmation: saisi });
+    fermerSuppression();
+    toast(`« ${r.nom} » supprimée définitivement.`);
+    await charger();
+  } catch (ex) {
+    err.textContent = ex.message;
+  }
+  b.disabled = false; b.textContent = 'Supprimer définitivement';
+}
+
+async function majEnt(id, donnees){
+  await api('/api/admin/entreprises/'+id,'PUT',donnees);
+  toast('Entreprise mise à jour.');
+  entreprises = await api('/api/admin/entreprises');
+  dessiner();
+}
+
+/* ==========================================================
+   Message WhatsApp d'approbation
+   ----------------------------------------------------------
+   Le texte est préparé par le serveur, relu ici, puis ouvert
+   dans WhatsApp. L'administrateur envoie lui-même : la trace
+   enregistrée dit « préparé », pas « reçu ».
+   ========================================================== */
+let waEntreprise = null;
+
+function boutonWhatsApp(e){
+  const tel = (e.whatsapp || e.telephone || '').replace(/\D/g,'');
+  if (tel.length < 8) return '<span class="petit muet" title="Aucun numéro utilisable pour cette entreprise">—</span>';
+  const fait = e.messageApprobation && e.messageApprobation.le;
+  return `<button class="btn ${fait ? 'btn-fantome' : 'btn-contour'} btn-petit"
+    onclick="ouvrirWa('${e.id}')"
+    title="${fait ? 'Message déjà préparé le ' + ech(dateHeure(e.messageApprobation.le)) : 'Préparer le message d’approbation'}">💬${fait ? ' ✓' : ''}</button>`;
+}
+
+async function ouvrirWa(id){
+  waEntreprise = id;
+  document.getElementById('errWa').textContent = '';
+  document.getElementById('waTexte').value = '';
+  document.getElementById('voileWa').classList.add('ouvert');
+  await chargerMessageWa();
+}
+function fermerWa(){ document.getElementById('voileWa').classList.remove('ouvert'); }
+
+async function chargerMessageWa(){
+  if (!waEntreprise) return;
+  const langue = document.getElementById('waLangue').value;
+  try {
+    const d = await api(`/api/admin/entreprises/${waEntreprise}/whatsapp?langue=${langue}`);
+    document.getElementById('waTexte').value = d.texte;
+    document.getElementById('waDestinataire').textContent =
+      `À ${d.responsable || 'le responsable'} · ${d.entreprise} · +${d.numero}`;
+    const dj = document.getElementById('waDejaEnvoye');
+    if (d.messageApprobation && d.messageApprobation.le) {
+      dj.style.display = '';
+      dj.innerHTML = `<span class="badge badge-gris">Déjà préparé le ${ech(dateHeure(d.messageApprobation.le))} par ${ech(d.messageApprobation.par||'')}</span>`;
+    } else { dj.style.display = 'none'; }
+  } catch(ex){ document.getElementById('errWa').textContent = ex.message; }
+}
+
+async function envoyerWa(){
+  const texte = document.getElementById('waTexte').value;
+  const err = document.getElementById('errWa');
+  if (!texte.trim()) { err.textContent = 'Le message est vide.'; return; }
+  try {
+    const d = await api(`/api/admin/entreprises/${waEntreprise}/whatsapp?langue=${document.getElementById('waLangue').value}`);
+    /* Le texte part tel qu'il est à l'écran : l'administrateur a pu le
+       corriger, et ses corrections comptent davantage que le modèle. */
+    const lien = `https://wa.me/${d.numero}?text=${encodeURIComponent(texte)}`;
+    window.open(lien, '_blank', 'noopener');
+    await api(`/api/admin/entreprises/${waEntreprise}/whatsapp`, 'POST',
+      { langue: document.getElementById('waLangue').value });
+    fermerWa();
+    toast('WhatsApp ouvert. Envoyez le message depuis l\'application.');
+    entreprises = await api('/api/admin/entreprises');
+    dessiner();
+  } catch(ex){ err.textContent = ex.message; }
+}
+
+// ---- Modèle pré-enregistré ----
+async function ouvrirModeleWa(){
+  document.getElementById('errModeleWa').textContent = '';
+  try {
+    const d = await api('/api/admin/modeles-whatsapp');
+    document.getElementById('modeleFr').value = d.approbation.fr;
+    document.getElementById('modeleHt').value = d.approbation.ht;
+    document.getElementById('waVariables').innerHTML = d.variables
+      .map(v=>`<span class="badge badge-gris" title="${ech(v.fr)}">{${ech(v.cle)}}</span>`).join('');
+    document.getElementById('voileModeleWa').classList.add('ouvert');
+  } catch(ex){ document.getElementById('errWa').textContent = ex.message; }
+}
+function fermerModeleWa(){ document.getElementById('voileModeleWa').classList.remove('ouvert'); }
+
+async function enregistrerModeleWa(){
+  const b = document.getElementById('btnModeleWa'), err = document.getElementById('errModeleWa');
+  b.disabled = true; err.textContent = '';
+  try {
+    await api('/api/admin/modeles-whatsapp','PUT',{ approbation: {
+      fr: document.getElementById('modeleFr').value,
+      ht: document.getElementById('modeleHt').value
+    }});
+    fermerModeleWa();
+    toast('Message pré-enregistré mis à jour.');
+    if (waEntreprise && document.getElementById('voileWa').classList.contains('ouvert')) await chargerMessageWa();
+  } catch(ex){ err.textContent = ex.message; }
+  b.disabled = false;
+}
+
+/* ==========================================================
+   Catégories et activités
+   ========================================================== */
+const LIB_MODULES = {
+  rdv:          ['Rendez-vous', 'Le client choisit un service, un jour, une heure.'],
+  equipe:       ['Équipe', 'Employés, planning de la semaine, heures et paie.'],
+  hotellerie:   ['Chambres et séjours', 'Calendrier d\'occupation, arrivées et départs.'],
+  carte:        ['Carte', 'Carte de restaurant ou de bar.'],
+  catalogue:    ['Catalogue', 'Produits présentés en vitrine, avec stock.'],
+  commandes:    ['Commandes et livraison', 'Panier, commandes en ligne, livraison ou retrait.'],
+  inscriptions: ['Programmes et inscriptions', 'Réservé aux établissements de formation.'],
+  dossiers:     ['Suivi de dossiers', 'Référence, étapes et pièces attendues.'],
+  urgences:     ['Urgences', 'Service joignable 24h/24, affiché à part.']
+};
+let ACT = { familles: [], metiers: [], modules: [] };
+let editFamille = null, editMetier = null;
+
+async function chargerActivites(){
+  ACT = await api('/api/admin/activites');
+  dessinerFamilles();
+  dessinerActivites();
+}
+
+function dessinerFamilles(){
+  document.getElementById('tableFamilles').innerHTML =
+    '<tr><th></th><th>Catégorie</th><th>Description</th><th>Activités</th><th>Entreprises</th><th>Actions</th></tr>' +
+    ACT.familles.map(f=>`<tr>
+      <td style="font-size:20px">${ech(f.ico)}</td>
+      <td><strong>${ech(f.nom)}</strong>${f.base?' <span class="badge badge-gris">d\'origine</span>':''}</td>
+      <td class="petit muet">${ech((f.desc&&f.desc.fr)||'—')}</td>
+      <td>${f.metiers}</td>
+      <td>${f.entreprises}</td>
+      <td>${f.base ? '<span class="petit muet">—</span>' : `
+        <button class="btn btn-contour btn-petit" onclick="ouvrirFamille('${encodeURIComponent(f.nom)}')">Modifier</button>
+        <button class="btn btn-fantome btn-petit" style="color:var(--rouge)" onclick="supprimerFamille('${encodeURIComponent(f.nom)}')">Supprimer</button>`}</td>
+    </tr>`).join('');
+}
+
+function dessinerActivites(){
+  const f = document.getElementById('filtreActivites').value;
+  const liste = ACT.metiers.filter(m => !f || (f==='base' ? m.base : !m.base));
+  const perso = ACT.metiers.filter(m=>!m.base).length;
+  document.getElementById('resumeActivites').textContent =
+    `${ACT.metiers.length} activités en tout, dont ${perso} ajoutée${perso>1?'s':''} par vous`;
+  document.getElementById('tableMetiers').innerHTML =
+    '<tr><th></th><th>Activité</th><th>Catégorie</th><th>Fonctions</th><th>Entreprises</th><th>Actions</th></tr>' +
+    (liste.length ? liste.map(m=>`<tr>
+      <td style="font-size:20px">${ech(m.ico)}</td>
+      <td><strong>${ech(m.nom.fr)}</strong>${m.base?' <span class="badge badge-gris">d\'origine</span>':''}
+        <div class="petit muet">${ech(m.nom.ht||'')} · <code>${ech(m.cle)}</code></div></td>
+      <td class="petit">${ech(m.famille)}</td>
+      <td class="petit muet">${m.modules.map(x=>ech((LIB_MODULES[x]||[x])[0])).join(', ')||'—'}</td>
+      <td>${m.entreprises}</td>
+      <td>${m.base ? '<span class="petit muet">—</span>' : `
+        <button class="btn btn-contour btn-petit" onclick="ouvrirMetier('${ech(m.cle)}')">Modifier</button>
+        <button class="btn btn-fantome btn-petit" style="color:var(--rouge)" onclick="supprimerMetier('${ech(m.cle)}')">Supprimer</button>`}</td>
+    </tr>`).join('') : '<tr><td colspan="6" class="petit muet">Aucune activité dans cette vue.</td></tr>');
+}
+
+// ---- Catégorie ----
+function ouvrirFamille(nomEnc){
+  const nom = nomEnc ? decodeURIComponent(nomEnc) : '';
+  editFamille = nom || null;
+  const f = nom ? ACT.familles.find(x=>x.nom===nom) : null;
+  document.getElementById('titreFamille').textContent = f ? 'Modifier la catégorie' : 'Nouvelle catégorie';
+  document.getElementById('famIco').value = f ? f.ico : '';
+  document.getElementById('famNom').value = f ? f.nom : '';
+  document.getElementById('famDescFr').value = f ? (f.desc.fr||'') : '';
+  document.getElementById('famDescHt').value = f ? (f.desc.ht||'') : '';
+  document.getElementById('errFamille').textContent = '';
+  document.getElementById('voileFamille').classList.add('ouvert');
+}
+function fermerFamille(){ document.getElementById('voileFamille').classList.remove('ouvert'); }
+
+async function enregistrerFamille(){
+  const err = document.getElementById('errFamille'), b = document.getElementById('btnFamille');
+  const corps = {
+    nom: document.getElementById('famNom').value.trim(),
+    ico: document.getElementById('famIco').value.trim(),
+    desc: { fr: document.getElementById('famDescFr').value.trim(), ht: document.getElementById('famDescHt').value.trim() }
+  };
+  if (!corps.nom) { err.textContent = 'Donnez un nom à la catégorie.'; return; }
+  err.textContent = ''; b.disabled = true;
+  try {
+    if (editFamille) await api('/api/admin/activites/familles/'+encodeURIComponent(editFamille),'PUT',corps);
+    else await api('/api/admin/activites/familles','POST',corps);
+    fermerFamille();
+    toast(editFamille ? 'Catégorie mise à jour.' : 'Catégorie créée.');
+    await chargerActivites();
+  } catch(ex){ err.textContent = ex.message; }
+  b.disabled = false;
+}
+
+async function supprimerFamille(nomEnc){
+  const nom = decodeURIComponent(nomEnc);
+  if (!confirm(`Supprimer la catégorie « ${nom} » ?`)) return;
+  try { await api('/api/admin/activites/familles/'+encodeURIComponent(nom),'DELETE'); toast('Catégorie supprimée.'); await chargerActivites(); }
+  catch(ex){ alert(ex.message); }
+}
+
+// ---- Activité ----
+function ouvrirMetier(cle){
+  editMetier = cle || null;
+  const m = cle ? ACT.metiers.find(x=>x.cle===cle) : null;
+  document.getElementById('titreMetier').textContent = m ? 'Modifier l\'activité' : 'Nouvelle activité';
+  document.getElementById('metFamille').innerHTML = ACT.familles
+    .map(f=>`<option value="${ech(f.nom)}"${m&&m.famille===f.nom?' selected':''}>${ech(f.ico)} ${ech(f.nom)}</option>`).join('');
+  document.getElementById('metModules').innerHTML = ACT.modules.map(x=>{
+    const l = LIB_MODULES[x] || [x,''];
+    const coche = m && m.modules.includes(x) ? ' checked' : '';
+    return `<label class="petit" style="display:flex;gap:7px;align-items:flex-start;font-weight:400;cursor:pointer">
+      <input type="checkbox" class="modMetier" value="${ech(x)}"${coche} style="width:auto;margin-top:3px">
+      <span><strong>${ech(l[0])}</strong><br><span class="muet">${ech(l[1])}</span></span></label>`;
+  }).join('');
+  const v = (id, val) => { document.getElementById(id).value = val || ''; };
+  v('metIco', m && m.ico); v('metNomFr', m && m.nom.fr); v('metNomHt', m && m.nom.ht);
+  const mo = (m && m.mots) || {};
+  v('motService', mo.service && mo.service.fr); v('motServicePl', mo.servicePl && mo.servicePl.fr);
+  v('motAgent', mo.agent && mo.agent.fr); v('motAgentPl', mo.agentPl && mo.agentPl.fr);
+  v('motRdv', mo.rdv && mo.rdv.fr); v('motAction', mo.action && mo.action.fr);
+  v('metExemples', m ? (m.exemples||[]).join(', ') : '');
+  v('metRayons', m ? (m.rayons||[]).join(', ') : '');
+  document.getElementById('errMetier').textContent = '';
+  majApercuCle();
+  document.getElementById('voileMetier').classList.add('ouvert');
+}
+function fermerMetier(){ document.getElementById('voileMetier').classList.remove('ouvert'); }
+
+/* L'identifiant se déduit du nom à la création, et ne bouge plus ensuite :
+   il est inscrit dans la fiche de chaque entreprise concernée. */
+function majApercuCle(){
+  const el = document.getElementById('metCleApercu');
+  if (editMetier) { el.innerHTML = `Identifiant : <code>${ech(editMetier)}</code> — il ne change pas, les entreprises inscrites s'y réfèrent.`; return; }
+  const n = document.getElementById('metNomFr').value.trim();
+  el.innerHTML = n ? `Identifiant : <code>${ech(n.normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'').slice(0,40))}</code>` : '';
+}
+
+async function enregistrerMetier(){
+  const err = document.getElementById('errMetier'), b = document.getElementById('btnMetier');
+  const g = (id) => document.getElementById(id).value.trim();
+  const corps = {
+    nom: { fr: g('metNomFr'), ht: g('metNomHt') },
+    ico: g('metIco'),
+    famille: document.getElementById('metFamille').value,
+    modules: [...document.querySelectorAll('.modMetier:checked')].map(x=>x.value),
+    exemples: g('metExemples'), rayons: g('metRayons'),
+    action: g('motAction'),
+    mots: {
+      service: g('motService'), servicePl: g('motServicePl'),
+      agent: g('motAgent'), agentPl: g('motAgentPl'), rdv: g('motRdv')
+    }
+  };
+  if (!corps.nom.fr) { err.textContent = 'Donnez un nom à l\'activité.'; return; }
+  if (!corps.modules.length) { err.textContent = 'Choisissez au moins une fonction : sans elle, l\'espace de gestion serait vide.'; return; }
+  err.textContent = ''; b.disabled = true;
+  try {
+    if (editMetier) await api('/api/admin/activites/metiers/'+editMetier,'PUT',corps);
+    else await api('/api/admin/activites/metiers','POST',corps);
+    fermerMetier();
+    toast(editMetier ? 'Activité mise à jour.' : 'Activité créée.');
+    await chargerActivites();
+  } catch(ex){ err.textContent = ex.message; }
+  b.disabled = false;
+}
+
+async function supprimerMetier(cle){
+  const m = ACT.metiers.find(x=>x.cle===cle);
+  if (!confirm(`Supprimer l'activité « ${m ? m.nom.fr : cle} » ?`)) return;
+  try { await api('/api/admin/activites/metiers/'+cle,'DELETE'); toast('Activité supprimée.'); await chargerActivites(); }
+  catch(ex){ alert(ex.message); }
+}
+
+document.getElementById('metNomFr').addEventListener('input', majApercuCle);
+
+charger().then(chargerActivites).catch(() => {});
+</script>
+</body>
+</html>

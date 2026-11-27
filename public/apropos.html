@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>À propos — Konekte</title>
+<link rel="icon" href="/favicon.ico" sizes="any">
+<link rel="icon" type="image/png" sizes="192x192" href="/icone-192.png">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<meta name="theme-color" content="#0B2C6B">
+<meta name="description" content="Konekte, la plateforme haïtienne qui réunit rendez-vous, réservation d'hébergement, vente en ligne et suivi de dossiers pour les entreprises du pays.">
+<link rel="stylesheet" href="/style.css">
+<script src="/app.js"></script>
+<script src="/translations.js"></script>
+</head>
+<body>
+
+<nav class="nav">
+  <div class="conteneur nav-int">
+    <button class="burger" aria-label="Menu" aria-expanded="false" onclick="basculerMenu(this)">☰</button>
+    <a class="logo" href="/"><img src="/logo-marque.png" alt="" style="height:34px;width:auto">Konekte</a>
+    <div class="nav-liens">
+      <a href="/" data-i18n="acc.nav.accueil">Accueil</a>
+      <a href="/boutique.html" data-i18n="bq.nav">Boutique</a>
+      <a href="/mes-achats.html" data-i18n="nav.achats">Mes achats</a>
+      <a href="/categories.html" data-i18n="acc.nav.categories">Catégories</a>
+      <a href="/tutoriel.html" data-i18n="nav.tutoriel">Tutoriel</a>
+      <a href="/apropos.html" class="actif" data-i18n="acc.nav.apropos">À propos</a>
+      <a href="/forfaits.html" data-i18n="nav.forfaits">Forfaits</a>
+      <a href="/contact.html" data-i18n="nav.contact">Contact</a>
+      <a class="btn btn-contour lien-mobile" href="/connexion.html" data-i18n="acc.nav.connexion">Se connecter</a>
+      <a class="btn btn-primaire lien-mobile" href="/inscription.html" data-i18n="acc.nav.inscrire">Inscrire mon entreprise</a>
+    </div>
+    <div class="nav-droite">
+      <button class="btn btn-fantome" id="btnLangue" style="font-size:14px" onclick="basculerLangue()">🌐 FR/HT</button>
+      <a class="btn btn-contour" href="/connexion.html" data-i18n="acc.nav.connexion">Se connecter</a>
+      <a class="btn btn-primaire" href="/inscription.html" data-i18n="acc.nav.inscrire">Inscrire mon entreprise</a>
+    </div>
+  </div>
+</nav>
+
+<main class="conteneur">
+  <section class="section" id="apropos" style="padding-top:8px">
+    <span class="eyebrow" data-i18n="ap.eyebrow">À propos</span>
+    <h2 data-i18n="ap.titre">Une plateforme née en Haïti, pour les entreprises haïtiennes</h2>
+    <p class="muet" style="max-width:64ch;margin-top:8px" data-i18n="ap.intro">Konekte est née d'un constat simple : trop d'entreprises haïtiennes perdent des clients faute d'un moyen simple d'être trouvées, jointes et réservées. Nous réunissons sur un même espace la prise de rendez-vous, la réservation d'hébergement, la vente en ligne et le suivi de dossiers.</p>
+
+    <div class="grille mt" style="grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px">
+      <div class="carte"><div class="carte-corps">
+        <div style="font-size:28px">🎯</div>
+        <h3 style="font-size:16px;margin-top:8px" data-i18n="ap.m1t">Notre mission</h3>
+        <p class="petit muet" style="margin-top:5px" data-i18n="ap.m1d">Donner à chaque entreprise haïtienne, quelle que soit sa taille, les outils numériques que seules les grandes structures pouvaient s'offrir.</p>
+      </div></div>
+      <div class="carte"><div class="carte-corps">
+        <div style="font-size:28px">🇭🇹</div>
+        <h3 style="font-size:16px;margin-top:8px" data-i18n="ap.m2t">Pensée pour le pays</h3>
+        <p class="petit muet" style="margin-top:5px" data-i18n="ap.m2d">Français et créole, paiement par MonCash, NatCash et Kashpaw, notifications par email, fonctionnement sur connexion lente. Rien n'est importé sans adaptation.</p>
+      </div></div>
+      <div class="carte"><div class="carte-corps">
+        <div style="font-size:28px">🤝</div>
+        <h3 style="font-size:16px;margin-top:8px" data-i18n="ap.m3t">Un modèle équitable</h3>
+        <p class="petit muet" style="margin-top:5px" data-i18n="ap.m3d">30 jours gratuits pour toute nouvelle entreprise, puis un forfait clair sans engagement. Nous ne gagnons que si votre activité tourne.</p>
+      </div></div>
+    </div>
+
+    <h3 style="margin-top:34px" data-i18n="ap.quoi">Ce que la plateforme sait faire</h3>
+    <div class="grille mt" style="grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:14px">
+      <div class="panneau"><strong>🗓 <span data-i18n="ap.f1t">Rendez-vous</span></strong>
+        <p class="petit muet" style="margin-top:4px" data-i18n="ap.f1d">Créneaux, calendrier, équipe et rappels automatiques.</p></div>
+      <div class="panneau"><strong>🛏️ <span data-i18n="ap.f2t">Hôtellerie</span></strong>
+        <p class="petit muet" style="margin-top:4px" data-i18n="ap.f2d">Chambres, séjours, plans tarifaires, saisons et planning d'occupation.</p></div>
+      <div class="panneau"><strong>🛒 <span data-i18n="ap.f3t">Vente en ligne</span></strong>
+        <p class="petit muet" style="margin-top:4px" data-i18n="ap.f3d">Catalogue, panier, commandes, livraison ou retrait sur place.</p></div>
+      <div class="panneau"><strong>🎓 <span data-i18n="ap.f4t">Écoles</span></strong>
+        <p class="petit muet" style="margin-top:4px" data-i18n="ap.f4d">Programmes, inscriptions en ligne et contrôle des places.</p></div>
+      <div class="panneau"><strong>📁 <span data-i18n="ap.f5t">Dossiers</span></strong>
+        <p class="petit muet" style="margin-top:4px" data-i18n="ap.f5d">Notaires, arpenteurs, avocats et comptables : suivi étape par étape.</p></div>
+      <div class="panneau"><strong>🚨 <span data-i18n="ap.f6t">Urgences</span></strong>
+        <p class="petit muet" style="margin-top:4px" data-i18n="ap.f6d">Cliniques et pharmacies joignables immédiatement, avec leur état d'affluence.</p></div>
+    </div>
+
+    <h3 style="margin-top:34px" data-i18n="ap.conf">Confiance et sécurité</h3>
+    <div class="grille mt" style="grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px">
+      <div class="panneau"><strong data-i18n="ap.s1t">Vos données vous appartiennent</strong>
+        <p class="petit muet" style="margin-top:4px" data-i18n="ap.s1d">Les coordonnées de vos clients ne sont ni revendues, ni cédées à des tiers.</p></div>
+      <div class="panneau"><strong data-i18n="ap.s2t">Paiements encadrés</strong>
+        <p class="petit muet" style="margin-top:4px" data-i18n="ap.s2d">Les encaissements passent par une passerelle agréée. Votre part est créditée sur votre portefeuille, commission déduite.</p></div>
+      <div class="panneau"><strong data-i18n="ap.s3t">Entreprises vérifiées</strong>
+        <p class="petit muet" style="margin-top:4px" data-i18n="ap.s3d">Chaque inscription est examinée avant publication sur la plateforme.</p></div>
+    </div>
+
+    <div class="carte mt" style="background:linear-gradient(120deg,var(--marine),#1D3A6E);border:none">
+      <div class="carte-corps centre" style="padding:40px 24px;color:#fff">
+        <h2 style="color:#fff" data-i18n="ap.cta.titre">Vous gérez une entreprise ?</h2>
+        <p style="color:#B9C6E4;max-width:54ch;margin:10px auto 22px" data-i18n="ap.cta.texte">Salon, clinique, garage, école, hôtel, boutique ou cabinet : ouvrez votre espace et profitez de 30 jours gratuits.</p>
+        <a class="btn btn-primaire btn-large" href="/inscription.html" data-i18n="ap.cta.bouton">Inscrire mon entreprise — 30 jours gratuits</a>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer class="pied-riche" style="margin-top:56px">
+  <div class="conteneur">
+    <div class="pied-bas">
+      <p class="petit">© 2026 <strong>KONEKTE</strong> — <span data-i18n="pied.droits">Tous droits réservés.</span></p>
+      <p class="petit"><a href="/mes-achats.html">Mes achats</a> · <a href="/recu.html">Mon reçu</a> · <a href="/confidentialite.html">Confidentialité</a></p>
+      <p class="petit" data-i18n="pied.concu">Conçu en Haïti 💙 pour les entreprises haïtiennes.</p>
+    </div>
+  </div>
+</footer>
+
+<div id="barreInstall" class="barre-install" style="display:none">
+  <span class="bi-ico"><img src="/logo-marque.png" alt="" style="width:26px;height:26px"></span>
+  <div class="bi-txt">
+    <strong data-i18n="inst.titre">Installez Konekte</strong>
+    <span data-i18n="inst.sous">Accès direct depuis votre écran d'accueil, sans passer par le navigateur.</span>
+  </div>
+  <button class="btn btn-primaire btn-petit" onclick="installerApp()" data-i18n="inst.bouton">Installer</button>
+  <button class="bi-fermer" onclick="fermerInstall()" aria-label="Fermer">✕</button>
+</div>
+
+<div id="toast"></div>
+</body>
+</html>

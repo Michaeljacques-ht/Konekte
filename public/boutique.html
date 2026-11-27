@@ -1,0 +1,301 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Boutique en ligne — Konekte</title>
+<link rel="icon" href="/favicon.ico" sizes="any">
+<link rel="icon" type="image/png" sizes="192x192" href="/icone-192.png">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<meta name="theme-color" content="#0B2C6B">
+<link rel="stylesheet" href="/style.css">
+<style>
+.hero-bq { background: #fff; border: 1px solid var(--bordure); border-radius: 24px; padding: 34px 30px; box-shadow: var(--ombre); position: relative; overflow: hidden; margin: 26px 0 22px; }
+.hero-bq::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 5px; background: var(--degrade-accent); }
+.hero-bq h1 { font-size: clamp(26px, 3.6vw, 36px); letter-spacing: -.03em; }
+.hero-bq .accent { background: linear-gradient(90deg, #1E5FE0, #6D4AC4); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.barre-bq { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 18px; }
+.barre-bq input, .barre-bq select { flex: 1; min-width: 150px; }
+.rayons-bq { display: flex; gap: 7px; flex-wrap: wrap; margin: 18px 0 6px; }
+.pastille-r { border: 1.5px solid var(--bordure); background: #fff; border-radius: var(--r-pilule); padding: 7px 14px; font: inherit; font-size: 13px; font-weight: 700; color: var(--texte); cursor: pointer; }
+.pastille-r:hover { border-color: var(--bleu); background: var(--bleu-clair); }
+.pastille-r.on { background: var(--degrade); border-color: transparent; color: #fff; }
+.grille-bq { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 13px; margin-top: 14px; }
+.art { border: 1px solid var(--bordure); border-radius: var(--r-carte); overflow: hidden; background: #fff; display: flex; flex-direction: column; transition: box-shadow .16s, transform .16s; }
+.art:hover { box-shadow: var(--ombre-f); transform: translateY(-3px); }
+.art-img { aspect-ratio: 16/10; background-size: cover; background-position: center; background-color: var(--gris-clair); position: relative; }
+.art-img.sans { display: grid; place-items: center; font-size: 30px; opacity: .3; }
+.art-promo { position: absolute; top: 7px; left: 7px; background: var(--orange); color: #fff; border-radius: 99px; padding: 2px 9px; font-size: 11px; font-weight: 800; }
+.art-corps { padding: 10px 11px 11px; display: flex; flex-direction: column; flex: 1; gap: 1px; }
+
+/* Les textes libres sont bornés : sans cela, une description longue
+   étire une carte et désaligne toute la rangée. */
+.art-corps > strong { font-size: 13.6px; line-height: 1.25; color: var(--marine);
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.art-corps .petit.muet { font-size: 11.6px; line-height: 1.3; margin: 0;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+
+.art-prix { margin-top: auto; padding-top: 6px; font-size: 15px; color: var(--marine); font-weight: 800; }
+.art-vendeur { display: flex; align-items: center; gap: 6px; margin-top: 7px; padding-top: 7px; border-top: 1px solid var(--bordure); }
+.art-vendeur a { font-size: 11.4px; line-height: 1.25;
+  display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden; }
+.pastille-v { width: 23px; height: 23px; border-radius: 7px; display: grid; place-items: center; color: #fff; font-size: 10px; font-weight: 800; flex: none; }
+.modes-v { display: flex; gap: 4px; flex-wrap: wrap; margin-top: 6px; }
+.mode-v { background: var(--bleu-clair); color: var(--marine); border-radius: 99px; padding: 2px 8px; font-size: 10.5px; font-weight: 700; }
+/* Les cartes descendent à 190 px de large : « ⏳ Précommander » et
+   « Contacter » n'y tiennent pas côte à côte, et le second sortait de la
+   carte, coupé net par le rognage. Les boutons passent donc à la ligne
+   quand la place manque, plutôt que d'être tronqués. */
+.art-actions { flex-wrap: wrap; }
+.art-actions .btn { flex: 1 1 auto; min-width: 104px; padding: 6px 8px; font-size: 12px;
+  text-align: center; white-space: nowrap; }
+.vide-bq { text-align: center; padding: 50px 20px; color: var(--gris); }
+.barre-install { position: fixed; left: 12px; right: 12px; bottom: 12px; z-index: 80;
+  background: #fff; border: 1px solid var(--bordure); border-radius: 16px; padding: 12px 14px;
+  box-shadow: 0 12px 34px rgba(11,44,107,.20); display: flex; align-items: center; gap: 12px;
+  max-width: 520px; margin: 0 auto; }
+.barre-install .bi-ico { width: 42px; height: 42px; border-radius: 12px; background: var(--bleu-clair);
+  display: grid; place-items: center; flex: none; }
+.bi-txt { flex: 1; min-width: 0; }
+.bi-txt strong { display: block; font-size: 14px; color: var(--marine); }
+.bi-txt span { font-size: 12.3px; color: var(--gris); line-height: 1.35; display: block; }
+.bi-fermer { border: 0; background: none; color: var(--gris); font-size: 16px; cursor: pointer;
+  padding: 4px; line-height: 1; flex: none; }
+.bi-fermer:hover { color: var(--marine); }
+@media (max-width: 480px) { .bi-txt span { display: none; } }
+.etat-stock { font-size: 11px; font-weight: 800; margin: 2px 0 0; line-height: 1.2; }
+.etat-stock.dispo { color: var(--vert); }
+.etat-stock.bientot { color: var(--orange); }
+.etat-stock.fini { color: var(--gris); }
+.art.epuise .art-img { filter: grayscale(.75); opacity: .62; position: relative; }
+.art.epuise { border-style: dashed; }
+.etat-stock.avenir { color: #7C3AED; }
+.art.avenir { border-color: #DDD0FB; background: #FCFAFF; }
+.ruban-avenir { position: absolute; left: 0; right: 0; bottom: 0; padding: 5px 8px;
+  text-align: center; font-size: 11px; font-weight: 800; color: #fff;
+  background: rgba(109,40,217,.88); letter-spacing: .03em; z-index: 2; }
+.art.epuise .art-img::after { content: 'FINI'; position: absolute; inset: 0; display: grid;
+  place-items: center; font-size: 15px; font-weight: 800; color: #fff;
+  background: rgba(16,24,40,.45); letter-spacing: .08em; }
+.btn-versement { display: block; width: 100%; margin-top: 6px; padding: 5px 9px;
+  text-align: center; font-size: 11.4px; font-weight: 700; border-radius: var(--r-pilule);
+  background: #FFF4EC; color: #C4520E; border: 1.5px dashed #F7C9A8; text-decoration: none; }
+.btn-versement:hover { background: #FFE9D8; text-decoration: none; }
+</style>
+<script src="/app.js"></script>
+<script src="/translations.js"></script>
+</head>
+<body>
+
+<nav class="nav">
+  <div class="conteneur nav-int">
+    <button class="burger" aria-label="Menu" aria-expanded="false" onclick="basculerMenu(this)">☰</button>
+    <a class="logo" href="/"><img src="/logo-marque.png" alt="" style="height:34px;width:auto">Konekte</a>
+    <div class="nav-liens">
+      <a href="/" data-i18n="acc.nav.accueil">Accueil</a>
+      <a href="/boutique.html" class="actif" data-i18n="bq.nav">Boutique</a>
+      <a href="/mes-achats.html" data-i18n="nav.achats">Mes achats</a>
+      <a href="/categories.html" data-i18n="acc.nav.categories">Catégories</a>
+      <a href="/tutoriel.html" data-i18n="nav.tutoriel">Tutoriel</a>
+      <a href="/apropos.html" data-i18n="acc.nav.apropos">À propos</a>
+      <a href="/forfaits.html" data-i18n="nav.forfaits">Forfaits</a>
+      <a href="/contact.html" data-i18n="nav.contact">Contact</a>
+      <a class="btn btn-contour lien-mobile" href="/connexion.html" data-i18n="acc.nav.connexion">Se connecter</a>
+      <a class="btn btn-primaire lien-mobile" href="/inscription.html" data-i18n="acc.nav.inscrire">Inscrire mon entreprise</a>
+    </div>
+    <div class="nav-droite">
+      <button class="btn btn-fantome" id="btnLangue" style="font-size:14px" onclick="basculerLangue()">🌐 FR/HT</button>
+      <a class="btn btn-contour" href="/connexion.html" data-i18n="acc.nav.connexion">Se connecter</a>
+      <a class="btn btn-primaire" href="/inscription.html" data-i18n="acc.nav.inscrire">Inscrire mon entreprise</a>
+    </div>
+  </div>
+</nav>
+
+<main class="conteneur">
+  <section class="hero-bq">
+    <span class="eyebrow" data-i18n="bq.eyebrow">Boutique en ligne</span>
+    <h1><span data-i18n="bq.titre1">Achetez auprès des </span><span class="accent" data-i18n="bq.titre2">commerçants haïtiens</span></h1>
+    <p class="muet" style="margin-top:10px;max-width:52ch" data-i18n="bq.intro">Parcourez les produits de tous les vendeurs de la plateforme, commandez en ligne et choisissez la livraison ou le retrait sur place.</p>
+    <div class="barre-bq">
+      <input id="qBq" data-i18n-placeholder="bq.recherche" placeholder="Que cherchez-vous ?">
+      <input id="villeBq" data-i18n-placeholder="bq.ville" placeholder="Ville ou quartier">
+      <select id="triBq">
+        <option value="" data-i18n="bq.tri.nom">Trier : nom</option>
+        <option value="prix" data-i18n="bq.tri.prix">Prix croissant</option>
+        <option value="prix_desc" data-i18n="bq.tri.prix2">Prix décroissant</option>
+        <option value="proche" data-i18n="bq.tri.proche">Les plus proches</option>
+      </select>
+      <button class="btn btn-primaire" onclick="chargerBoutique()" data-i18n="bq.chercher">Rechercher</button>
+    </div>
+    <p class="petit muet" id="resumeBq" style="margin-top:12px"></p>
+  </section>
+
+  <div class="rayons-bq" id="rayonsBq"></div>
+  <div class="grille-bq" id="grilleBq"></div>
+  <div id="videBq"></div>
+</main>
+
+<footer class="pied-riche" style="margin-top:56px">
+  <div class="conteneur">
+    <div class="pied-bas">
+      <p class="petit">© 2026 <strong>KONEKTE</strong> — <span data-i18n="pied.droits">Tous droits réservés.</span></p>
+      <p class="petit"><a href="/mes-achats.html">Mes achats</a> · <a href="/recu.html">Mon reçu</a> · <a href="/confidentialite.html">Confidentialité</a></p>
+      <p class="petit" data-i18n="pied.concu">Conçu en Haïti 💙 pour les entreprises haïtiennes.</p>
+    </div>
+  </div>
+</footer>
+
+<div id="barreInstall" class="barre-install" style="display:none">
+  <span class="bi-ico"><img src="/logo-marque.png" alt="" style="width:26px;height:26px"></span>
+  <div class="bi-txt">
+    <strong data-i18n="inst.titre">Installez Konekte</strong>
+    <span data-i18n="inst.sous">Accès direct depuis votre écran d'accueil, sans passer par le navigateur.</span>
+  </div>
+  <button class="btn btn-primaire btn-petit" onclick="installerApp()" data-i18n="inst.bouton">Installer</button>
+  <button class="bi-fermer" onclick="fermerInstall()" aria-label="Fermer">✕</button>
+</div>
+
+<div id="toast"></div>
+
+<script>
+// Financement : adresse et seuil, chargés une fois
+let FIN = { url: '', seuil: 10000 };
+let rayonBq = '', maPosition = null;
+
+function lg(){ return localStorage.getItem('langue') || 'fr'; }
+
+async function chargerBoutique(){
+  const p = new URLSearchParams();
+  const q = document.getElementById('qBq').value.trim();
+  const ville = document.getElementById('villeBq').value.trim();
+  const tri = document.getElementById('triBq').value;
+  if (q) p.set('q', q);
+  if (ville) p.set('ville', ville);
+  if (rayonBq) p.set('rayon', rayonBq);
+  if (tri) p.set('tri', tri);
+  if (maPosition) { p.set('lat', maPosition.lat); p.set('lng', maPosition.lng); }
+
+  const grille = document.getElementById('grilleBq');
+  grille.innerHTML = `<p class="muet petit">${lg()==='ht'?'Ap chaje…':'Chargement…'}</p>`;
+  document.getElementById('videBq').innerHTML = '';
+  try {
+    const r = await api('/api/boutique?' + p.toString());
+    dessinerRayons(r.rayons);
+    document.getElementById('resumeBq').textContent = lg()==='ht'
+      ? `${r.total} pwodwi nan ${r.vendeurs} boutik`
+      : `${r.total} produit${r.total>1?'s':''} chez ${r.vendeurs} vendeur${r.vendeurs>1?'s':''}`;
+    if (!r.articles.length) {
+      grille.innerHTML = '';
+      document.getElementById('videBq').innerHTML = `<div class="vide-bq">
+        <div style="font-size:42px">🛒</div>
+        <p style="margin-top:10px">${lg()==='ht'?'Anyen pa jwenn. Eseye yon lòt mo.':'Aucun produit trouvé. Essayez un autre mot.'}</p></div>`;
+      return;
+    }
+    grille.innerHTML = r.articles.map(a => carteArticle(a)).join('');
+  } catch(e){
+    grille.innerHTML = `<p class="petit" style="color:var(--rouge)">${ech(e.message)}</p>`;
+  }
+}
+
+function carteArticle(a){
+  const v = a.vendeur;
+  const prix = a.prixPromo > 0 ? a.prixPromo : a.prix;
+  const msg = encodeURIComponent(
+    (lg()==='ht' ? 'Bonjou, mwen enterese nan : ' : 'Bonjour, je suis intéressé(e) par : ')
+    + a.nom + ' (' + prix.toLocaleString('fr-HT') + ' HTG)');
+  const modes = [];
+  if (v.livraison)  modes.push('🛵 ' + (lg()==='ht'?'Livrezon':'Livraison'));
+  if (v.cueillette) modes.push('🏪 ' + (lg()==='ht'?'Vin chèche':'Retrait'));
+  const aVenir = a.etat === 'bientot';
+  const quand = a.dateDispo ? dateCourte(a.dateDispo, lg()) : '';
+  const ruban = aVenir
+    ? `<span class="ruban-avenir">${lg()==='ht'
+        ? (quand ? 'BYENTO · ' + ech(quand) : 'BYENTO DISPONIB')
+        : (quand ? 'BIENTÔT · ' + ech(quand) : 'BIENTÔT DISPONIBLE')}</span>` : '';
+  /* Adresse de la fiche du produit chez son vendeur. La page publique
+     de l'entreprise ouvre directement cette fiche quand l'adresse porte
+     « ?produit= » : l'acheteur voit le produit qu'il a choisi, et non le
+     catalogue entier de la boutique où il devrait le retrouver. */
+  const lienProduit = `/${ech(v.slug)}?produit=${encodeURIComponent(a.id)}`;
+  return `<div class="art${a.etat === 'fini' ? ' epuise' : ''}${aVenir ? ' avenir' : ''}"
+    role="button" tabindex="0" style="cursor:pointer"
+    onclick="location.href='${lienProduit}'"
+    onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();location.href='${lienProduit}'}">
+    ${a.photo ? `<div class="art-img" style="background-image:url('${a.photo}')">${a.prixPromo?`<span class="art-promo">${lg()==='ht'?'PWOMO':'PROMO'}</span>`:''}${ruban}</div>`
+              : `<div class="art-img sans"><span>🛍️</span>${a.prixPromo?`<span class="art-promo">${lg()==='ht'?'PWOMO':'PROMO'}</span>`:''}${ruban}</div>`}
+    <div class="art-corps">
+      <strong>${ech(a.nom)}</strong>
+      ${a.marque?`<p class="petit muet">${ech(a.marque)}</p>`:''}
+      ${a.description?`<p class="petit muet">${ech(a.description)}</p>`:''}
+      ${aVenir
+        ? `<p class="etat-stock avenir">⏳ ${lg()==='ht'
+             ? (quand ? 'Byento disponib — ' + ech(quand) : 'Byento disponib')
+             : (quand ? 'Bientôt disponible — ' + ech(quand) : 'Bientôt disponible')}</p>`
+        : (a.etat === 'fini'
+        ? `<p class="etat-stock fini">${lg()==='ht'?'Fini':'Fini'}</p>`
+        : (a.stockFaible
+          ? `<p class="etat-stock bientot">${lg()==='ht'?'Dènye inite yo':'Dernières unités'}</p>`
+          : `<p class="etat-stock dispo">${lg()==='ht'?'Disponib':'Disponible'}</p>`))}
+      <p class="art-prix">
+        ${a.prixPromo ? `<s class="petit muet" style="font-weight:400">${(+a.prix).toLocaleString('fr-HT')}</s> ${(+a.prixPromo).toLocaleString('fr-HT')} HTG`
+                      : `${(+a.prix).toLocaleString('fr-HT')} HTG`}
+        ${a.unite?`<span class="petit muet" style="font-weight:400">/${ech(a.unite)}</span>`:''}
+      </p>
+      ${a.versement && FIN.url
+        ? `<a class="btn-versement" target="_blank" rel="noopener" onclick="event.stopPropagation()" href="${ech(FIN.url)}">
+             💳 ${lg()==='ht'?'Peye an vèsman':'Payer par versement'}</a>` : ''}
+      <div class="art-vendeur">
+        <span class="pastille-v" style="background:${ech(v.couleur)}">${ech(v.logoTexte || v.nom.slice(0,2).toUpperCase())}</span>
+        <div style="flex:1;min-width:0">
+          <a class="petit" href="/${ech(v.slug)}" style="font-weight:700"
+             onclick="event.stopPropagation()">${ech(v.nom)}</a>
+          <div class="petit muet" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">
+            ${ech(v.adresse)}${v.distanceKm!==null?` · ${v.distanceKm} km`:''}
+          </div>
+        </div>
+      </div>
+      ${modes.length?`<div class="modes-v">${modes.map(m=>`<span class="mode-v">${m}</span>`).join('')}</div>`:''}
+      <div class="flex art-actions" style="gap:5px;margin-top:8px">
+        ${a.precommandable
+          ? `<a class="btn btn-petit" style="background:#6D28D9;color:#fff" href="${lienProduit}">⏳ ${lg()==='ht'?'Prekòmande':'Précommander'}</a>`
+          : (v.commande && a.etat === 'disponible'
+          ? `<a class="btn btn-primaire btn-petit" href="${lienProduit}">${lg()==='ht'?'Kòmande':'Commander'}</a>`
+          : '')}
+        ${v.whatsapp
+          ? `<a class="btn btn-succes btn-petit" target="_blank" rel="noopener"
+               onclick="event.stopPropagation()"
+               href="https://wa.me/${ech(v.whatsapp)}?text=${msg}">${lg()==='ht'?'Kontakte':'Contacter'}</a>`
+          : `<a class="btn btn-contour btn-petit" href="${lienProduit}">${lg()==='ht'?'Wè pwodwi a':'Voir le produit'}</a>`}
+      </div>
+    </div>
+  </div>`;
+}
+
+function dessinerRayons(rayons){
+  document.getElementById('rayonsBq').innerHTML =
+    `<button class="pastille-r${rayonBq===''?' on':''}" onclick="filtrerRayonBq('')">${lg()==='ht'?'Tout':'Tout'}</button>` +
+    rayons.map(r => `<button class="pastille-r${rayonBq===r?' on':''}" onclick="filtrerRayonBq('${r.replace(/'/g,"\\'")}')">${ech(r)}</button>`).join('');
+}
+function filtrerRayonBq(r){ rayonBq = r; chargerBoutique(); }
+
+// La recherche se relance à la validation du champ
+['qBq','villeBq'].forEach(id => document.getElementById(id).addEventListener('keydown', (ev) => {
+  if (ev.key === 'Enter') chargerBoutique();
+}));
+document.getElementById('triBq').addEventListener('change', () => {
+  // Le tri par distance a besoin de la position, demandée seulement à ce moment-là
+  if (document.getElementById('triBq').value === 'proche' && !maPosition && navigator.geolocation) {
+    navigator.geolocation.getCurrentPosition(
+      (pos) => { maPosition = { lat: pos.coords.latitude, lng: pos.coords.longitude }; chargerBoutique(); },
+      () => { toast(lg()==='ht' ? 'Pozisyon pa disponib.' : 'Position indisponible.'); chargerBoutique(); },
+      { timeout: 10000 });
+    return;
+  }
+  chargerBoutique();
+});
+
+// Paramètres du financement, puis la boutique
+api('/api/financement').then(f => { FIN = f; }).catch(() => {}).finally(chargerBoutique);
+</script>
+</body>
+</html>

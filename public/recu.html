@@ -1,0 +1,234 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Reçu de paiement — Konekte</title>
+<meta name="robots" content="noindex">
+<link rel="icon" href="/favicon.ico" sizes="any">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<meta name="theme-color" content="#0B2C6B">
+<link rel="stylesheet" href="/style.css">
+<style>
+body { background: var(--fond); min-height: 100vh; padding: 20px 14px 40px; }
+.boite { width: 100%; max-width: 420px; margin: 0 auto; }
+.recu { background: #fff; border-radius: 18px; overflow: hidden; box-shadow: var(--ombre-f); }
+.recu-tete { background: linear-gradient(140deg, var(--marine), #1D3A6E); color: #fff;
+  padding: 22px 24px; text-align: center; }
+.recu-tete .etat { display: inline-flex; align-items: center; gap: 6px; background: var(--vert);
+  border-radius: 99px; padding: 5px 14px; font-size: 12.5px; font-weight: 800; }
+/* Commande réglée à la remise : le bandeau le dit sans crier à l'erreur. */
+.recu-tete .etat.etat-du { background: var(--orange); }
+.recu-tete .montant { font-size: 33px; font-weight: 800; margin-top: 12px; }
+.recu-tete .ent { opacity: .85; font-size: 13.5px; margin-top: 4px; }
+.recu-corps { padding: 20px 24px; }
+.ligne { display: flex; justify-content: space-between; gap: 14px; padding: 8px 0;
+  border-bottom: 1px dashed var(--bordure); font-size: 13.8px; }
+.ligne:last-child { border-bottom: 0; }
+.ligne span:first-child { color: var(--gris); }
+.ligne span:last-child { font-weight: 700; color: var(--marine); text-align: right; }
+.zone-qr { text-align: center; padding: 18px 24px 24px; border-top: 2px dashed var(--bordure); }
+.zone-qr svg { width: 168px; height: 168px; }
+.zone-qr p { font-size: 12px; color: var(--gris); margin-top: 8px; line-height: 1.45; }
+.marque { text-align: center; font-size: 11px; color: var(--gris); padding: 0 24px 18px; }
+.actions { display: flex; gap: 8px; margin-top: 14px; }
+.actions .btn { flex: 1; }
+
+/* En-tête de l'entreprise : c'est son document, son nom passe avant le
+   nôtre. Konekte ne garde qu'une ligne en pied de page. */
+.emetteur { padding: 16px 24px 0; text-align: center; }
+.emetteur img { max-height: 54px; width: auto; margin-bottom: 6px; }
+.emetteur .rs { font-weight: 800; color: var(--marine); font-size: 15px; }
+.emetteur .coord { font-size: 11.5px; color: var(--gris); line-height: 1.5; margin-top: 2px; }
+.mentions { padding: 0 24px 16px; font-size: 11.5px; color: var(--gris); line-height: 1.55; }
+.mentions strong { color: var(--marine); display: block; }
+.signez { border-top: 1px dashed var(--bordure); margin: 0 24px; padding: 18px 0 6px;
+  display: flex; gap: 18px; }
+.signez div { flex: 1; font-size: 11px; color: var(--gris); text-align: center; }
+.signez .trait { border-bottom: 1px solid var(--marine); height: 34px; margin-bottom: 4px; }
+
+/* Le contrat : une seconde feuille, qui s'imprime sur sa propre page. */
+.contrat { background: #fff; border-radius: 18px; box-shadow: var(--ombre-f);
+  margin-top: 14px; padding: 24px; }
+.contrat h2 { font-size: 17px; color: var(--marine); text-align: center; margin-bottom: 4px; }
+.contrat .sous { text-align: center; font-size: 11.5px; color: var(--gris); margin-bottom: 14px; }
+.contrat article { margin-top: 13px; display: block; }
+.contrat article h3 { font-size: 13px; color: var(--marine); margin-bottom: 3px; }
+.contrat article p { font-size: 12.8px; line-height: 1.6; color: #333; }
+.contrat .pied { margin-top: 16px; font-size: 11.5px; color: var(--gris); line-height: 1.55; }
+.signature-faite { margin-top: 16px; background: #ECFDF5; border-radius: 12px;
+  padding: 12px 14px; font-size: 12.5px; color: #065F46; }
+.bloc-signer { margin-top: 16px; border-top: 1px dashed var(--bordure); padding-top: 14px; }
+
+@media print {
+  body { background: #fff; padding: 0; }
+  .actions, .form-recherche, .logo-haut, .bloc-signer { display: none !important; }
+  .recu, .contrat { box-shadow: none; border: 1px solid #ddd; }
+  .contrat { page-break-before: always; break-before: page; }
+}
+</style>
+<script src="/app.js"></script>
+</head>
+<body>
+<div class="boite">
+  <div class="centre mb logo-haut"><a class="logo" style="justify-content:center" href="/"><img src="/logo.png" alt="Konekte" style="height:64px;width:auto"></a></div>
+  <div id="zone"></div>
+</div>
+
+<div id="toast"></div>
+<script>
+const METHODES = { moncash:'MonCash', natcash:'NatCash', kashpaw:'Kashpaw', all:'Paiement en ligne' };
+const OBJETS = { rendezvous:'Rendez-vous', sejour:'Séjour', commande:'Commande', abonnement:'Abonnement' };
+
+function formulaire(message){
+  document.getElementById('zone').innerHTML = `
+    <div class="carte form-recherche"><div class="carte-corps" style="padding:24px">
+      <h1 style="font-size:19px">Votre reçu</h1>
+      <p class="petit muet" style="margin-top:4px">Saisissez la référence reçue par courriel après votre commande, votre réservation ou votre paiement. Elle figure en gros caractères dans le message.</p>
+      <label>Référence</label>
+      <input id="ref" placeholder="Ex : CSAT4OS" style="text-transform:uppercase" autocomplete="off" autocapitalize="characters">
+      <p class="champ-erreur" id="err">${message || ''}</p>
+      <button class="btn btn-primaire" style="width:100%" onclick="chercher()">Afficher mon reçu</button>
+    </div></div>`;
+}
+
+async function chercher(){
+  const ref = document.getElementById('ref').value.trim().toUpperCase();
+  if (!ref) { document.getElementById('err').textContent = 'Saisissez votre référence.'; return; }
+  location.search = '?ref=' + encodeURIComponent(ref);
+}
+
+async function afficher(ref){
+  let d;
+  try { d = await api('/api/recu?ref=' + encodeURIComponent(ref)); }
+  catch (e) { formulaire(e.message); return; }
+
+  /* Une commande réglée à la remise donne droit au même document : c'est
+     la preuve de sa commande. Le bandeau dit simplement ce qu'il en est. */
+  const regle = d.statut === 'confirme';
+  const em = d.emetteur || {};
+  const doc = d.document || {};
+  /* Les coordonnées que l'entreprise a choisi d'imprimer. */
+  const coord = [em.adresse, em.ville, em.telephone].filter(Boolean).join(' · ');
+  document.getElementById('zone').innerHTML = `
+    <div class="recu">
+      <div class="recu-tete">
+        <span class="etat${regle ? '' : ' etat-du'}">${regle ? '✓ Payé' : '⏳ À régler'}</span>
+        <div class="montant">${(+d.montant).toLocaleString('fr-HT')} HTG</div>
+        <p class="ent">${ech(doc.titre || 'Reçu de paiement')}</p>
+      </div>
+      <!-- En-tête de l'entreprise, tel qu'elle l'a paramétré -->
+      <div class="emetteur">
+        ${em.logo ? `<img src="${ech(em.logo)}" alt="">` : ''}
+        <div class="rs">${ech(em.raisonSociale || em.nom || d.entreprise)}</div>
+        ${coord ? `<div class="coord">${ech(coord)}</div>` : ''}
+        ${em.nif ? `<div class="coord">NIF / Patente : ${ech(em.nif)}</div>` : ''}
+      </div>
+      <div class="recu-corps">
+        <div class="ligne"><span>Référence</span><span>${ech(d.reference)}</span></div>
+        ${d.objet ? `<div class="ligne"><span>Objet</span><span>${ech(d.objet)}</span></div>` : ''}
+        ${d.client ? `<div class="ligne"><span>Client</span><span>${ech(d.client)}</span></div>` : ''}
+        <div class="ligne"><span>${regle ? 'Moyen de paiement' : 'Règlement'}</span><span>${regle
+          ? ech(METHODES[d.methode] || d.methode || '—')
+          : 'À la remise'}</span></div>
+        <div class="ligne"><span>Date</span><span>${new Date(d.le).toLocaleString('fr-HT')}</span></div>
+        ${d.transaction ? `<div class="ligne"><span>Transaction</span><span class="petit">${ech(d.transaction)}</span></div>` : ''}
+      </div>
+      ${doc.mentions || doc.conditions ? `<div class="mentions">
+        ${doc.mentions ? `<p>${ech(doc.mentions)}</p>` : ''}
+        ${doc.conditions ? `<p style="margin-top:6px"><strong>Conditions</strong>${ech(doc.conditions)}</p>` : ''}
+      </div>` : ''}
+      ${doc.ligneSignature ? `<div class="signez">
+        <div><div class="trait"></div>Signature et cachet</div>
+        <div><div class="trait"></div>Le client</div>
+      </div>` : ''}
+      <div class="zone-qr">
+        ${d.qr || '<p class="petit muet">Code QR indisponible</p>'}
+        <p><strong>Le commerçant scanne ce code</strong> pour vérifier ${regle ? 'le paiement' : 'cette commande'} auprès de Konekte.</p>
+      </div>
+      <p class="marque">Document émis via Konekte · bizniskonekte.tech</p>
+    </div>
+    ${contratHTML(d)}
+    <div class="actions">
+      <button class="btn btn-contour btn-petit" onclick="window.print()">🖨️ Imprimer</button>
+      <button class="btn btn-primaire btn-petit" onclick="partagerRecu('${ech(d.reference)}')">Partager</button>
+    </div>
+    <p class="aide centre mt">${regle
+      ? 'Conservez ce reçu jusqu\'à la remise du service ou du produit.'
+      : 'Ce document atteste votre commande. Le montant sera réglé au moment de la remise.'}</p>`;
+}
+
+/* ============================================================
+   Le contrat de l'entreprise
+   ------------------------------------------------------------
+   Fiche de séjour, convention d'honoraires, ordre de réparation :
+   le texte vient de l'entreprise, qui l'a écrit pour son métier.
+   Il s'imprime sur sa propre feuille, derrière le reçu.
+   ============================================================ */
+let REF_DOC = '';
+
+function contratHTML(d){
+  const c = d.contrat;
+  if (!c) return '';
+  REF_DOC = d.reference;
+  const sg = d.signature;
+  return `<div class="contrat" id="contrat">
+    <h2>${ech(c.titre)}</h2>
+    <p class="sous">Référence ${ech(d.reference)} · ${ech((d.emetteur || {}).raisonSociale || d.entreprise)}</p>
+    ${c.articles.map((a, i) => `<article>
+      <h3>${i + 1}. ${ech(a.titre)}</h3>
+      <p>${ech(a.corps)}</p>
+    </article>`).join('')}
+    ${c.pied ? `<p class="pied">${ech(c.pied)}</p>` : ''}
+    ${sg ? `<div class="signature-faite">✓ Accepté par <strong>${ech(sg.nom)}</strong>
+       le ${new Date(sg.le).toLocaleString('fr-HT')}.${c.fige
+         ? '<br><span style="opacity:.8">Texte conservé tel qu\'il était à cette date.</span>' : ''}</div>`
+      : (c.signatureClient ? `<div class="bloc-signer">
+        <p class="petit muet">Pour accepter ce document, inscrivez votre nom complet. Votre saisie vaut signature.</p>
+        <label>Votre nom complet</label>
+        <input id="sgNom" autocomplete="name" placeholder="Prénom et nom">
+        <p class="champ-erreur" id="sgErr"></p>
+        <button class="btn btn-primaire" style="width:100%" id="btnSigner" onclick="signerContrat()">J'accepte ce document</button>
+      </div>` : '')}
+  </div>`;
+}
+
+async function signerContrat(){
+  const nom = (document.getElementById('sgNom').value || '').trim();
+  const err = document.getElementById('sgErr');
+  const b = document.getElementById('btnSigner');
+  err.textContent = '';
+  if (nom.length < 3) { err.textContent = 'Inscrivez votre nom complet.'; return; }
+  b.disabled = true; b.textContent = 'Envoi…';
+  try {
+    await api('/api/contrats/signer', 'POST', { ref: REF_DOC, nom });
+    /* On recharge le document : la date qui fait foi est celle du
+       serveur, pas celle de l'appareil du client. */
+    afficher(REF_DOC);
+    toast('Document accepté.');
+  } catch (e) {
+    err.textContent = e.message;
+    b.disabled = false; b.textContent = "J'accepte ce document";
+  }
+}
+
+/* Adresse officielle, demandée une fois au serveur : le lien d'un reçu
+   doit rester valable même ouvert des mois plus tard, et ne pas figer
+   l'adresse technique par laquelle le client est passé ce jour-là. */
+let URL_PLATEFORME = '';
+(async () => { try { URL_PLATEFORME = (await api('/api/url-publique')).url || ''; } catch { /* repli sur l'adresse courante */ } })();
+
+async function partagerRecu(ref){
+  const lien = (URL_PLATEFORME || location.origin) + '/recu.html?ref=' + encodeURIComponent(ref);
+  if (navigator.share) {
+    try { await navigator.share({ title: 'Reçu de paiement', url: lien }); return; } catch {}
+  }
+  try { await navigator.clipboard.writeText(lien); toast('Lien copié'); }
+  catch { window.open('https://wa.me/?text=' + encodeURIComponent(lien), '_blank'); }
+}
+
+const ref = new URLSearchParams(location.search).get('ref');
+if (ref) afficher(ref); else formulaire('');
+</script>
+</body>
+</html>
